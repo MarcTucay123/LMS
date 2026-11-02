@@ -6,9 +6,11 @@ import { AuthProvider } from './hooks/useAuth'
 import { ClassPage } from './pages/ClassPage'
 import { ClassesPage } from './pages/ClassesPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { WorkspacePage } from './pages/WorkspacePage'
 import { AdminClassesPage } from './pages/admin/AdminClassesPage'
 import { AdminRegistrationsPage } from './pages/admin/AdminRegistrationsPage'
@@ -23,10 +25,14 @@ export default function App() {
           <Route element={<GuestOnlyRoute />}>
             <Route element={<AuthLayout />}>
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/register/:role" element={<RegisterPage />} />
               <Route path="/register" element={<Navigate to="/register/student" replace />} />
               <Route path="/activate" element={<Navigate to="/register/student" replace />} />
             </Route>
+          </Route>
+          <Route element={<AuthLayout />}>
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
           </Route>
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>

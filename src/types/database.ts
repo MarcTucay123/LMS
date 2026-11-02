@@ -17,6 +17,10 @@ export interface Database {
           school_id: string
           email: string
           full_name: string
+          first_name: string | null
+          middle_name: string | null
+          last_name: string | null
+          suffix: string | null
           role: UserRole
           status: AccountStatus
           created_at: string
@@ -28,6 +32,10 @@ export interface Database {
           school_id: string
           email: string
           full_name: string
+          first_name?: string | null
+          middle_name?: string | null
+          last_name?: string | null
+          suffix?: string | null
           role?: UserRole
           status?: AccountStatus
           created_at?: string
@@ -140,6 +148,10 @@ export interface Database {
           auth_user_id: string
           email: string
           full_name: string
+          first_name: string
+          middle_name: string | null
+          last_name: string
+          suffix: string | null
           requested_role: UserRole
           status: 'pending' | 'approved' | 'rejected'
           reviewed_by: string | null
@@ -152,6 +164,10 @@ export interface Database {
           auth_user_id: string
           email: string
           full_name: string
+          first_name: string
+          middle_name?: string | null
+          last_name: string
+          suffix?: string | null
           requested_role: UserRole
           status?: 'pending' | 'approved' | 'rejected'
           reviewed_by?: string | null

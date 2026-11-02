@@ -9,7 +9,7 @@ Web-based Learning Management System for Asian Development Foundation College. T
 
 - React, Vite, TypeScript, React Router, and Tailwind CSS
 - Supabase browser client using only the public anon key
-- Email/password login and logout
+- Email/password login, password recovery, and logout
 - Public email registration for student, instructor, and administrator applicants
 - Administrator approval with automatically generated OC and account IDs
 - Instructor class assignment during approval with automatic dashboard visibility
@@ -150,6 +150,8 @@ The repository includes `vercel.json` with the Vite build settings and an SPA re
 3. Keep the project root directory at the repository root. Vercel will run `npm run build` and serve `dist`.
 4. Push to `main` or select **Deployments → Redeploy** to create the production deployment.
 
+In Supabase **Authentication → URL Configuration**, add each deployed application origin followed by `/reset-password` to the allowed redirect URLs (for example, `https://your-domain.example/reset-password`). Local development should allow `http://localhost:5173/reset-password`.
+
 Do not add `SUPABASE_SERVICE_ROLE_KEY` or `ONECAMPUS_API_KEY` to Vercel. Those are Supabase Edge Function secrets, not frontend variables.
 
 ## Environment variables
@@ -180,7 +182,7 @@ Each login portal has a matching fixed-role registration form:
 
 The registration forms do not contain a role selector. The route fixes the requested role and follows this workflow:
 
-1. The applicant opens the registration link from the matching login form and provides a full name, a valid email address (such as Gmail, Yahoo, Outlook, or an institutional address), and a password.
+1. The applicant opens the registration link from the matching login form and provides a first name, optional middle name, last name, optional suffix, valid email address, and password. The system generates the display name from the structured name fields.
 2. The public `register-account` Edge Function creates the Supabase Auth credential and a pending `registration_applications` row. It does not create an LMS profile or accept a user-supplied OC ID.
 3. The applicant cannot enter the LMS while the application is pending because no active profile exists.
 4. An existing active administrator opens **Registration approvals** and approves or rejects the request.
@@ -200,6 +202,7 @@ If using the Supabase SQL Editor instead of the CLI, paste and run the complete 
 ```text
 supabase/migrations/202611020005_public_registration_approval.sql
 supabase/migrations/202611020006_allow_all_email_providers.sql
+supabase/migrations/202611020007_structured_registration_names.sql
 ```
 
 Then deploy the `register-account` Edge Function from the CLI. The migration alone creates the database approval workflow, but the Edge Function is required for public registration because Auth administration must remain server-side.

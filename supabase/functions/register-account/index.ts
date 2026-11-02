@@ -4,7 +4,10 @@ import { corsHeaders } from '../_shared/cors.ts'
 type RequestedRole = 'student' | 'instructor' | 'admin'
 
 interface RegistrationRequest {
-  fullName?: string
+  firstName?: string
+  middleName?: string | null
+  lastName?: string
+  suffix?: string | null
   email?: string
   password?: string
   role?: RequestedRole
@@ -18,20 +21,33 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+[.][^\s@]+$/.test(email)
 }
 
+function normalizeNamePart(value?: string | null) {
+  return value?.trim().replace(/\s+/g, ' ') || null
+}
+
+function isValidNamePart(value: string) {
+  return /^[\p{L}\p{M} .'-]+$/u.test(value) && value.length <= 80
+}
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (request.method !== 'POST') return json({ error: 'Method not allowed.' }, 405)
 
   let createdUserId: string | null = null
   try {
-    const { fullName, email, password, role } = await request.json() as RegistrationRequest
-    const normalizedName = fullName?.trim()
+    const { firstName, middleName, lastName, suffix, email, password, role } = await request.json() as RegistrationRequest
+    const normalizedFirstName = normalizeNamePart(firstName)
+    const normalizedMiddleName = normalizeNamePart(middleName)
+    const normalizedLastName = normalizeNamePart(lastName)
+    const normalizedSuffix = normalizeNamePart(suffix)
     const normalizedEmail = email?.trim().toLowerCase()
+    const normalizedName = [normalizedFirstName, normalizedMiddleName, normalizedLastName, normalizedSuffix].filter(Boolean).join(' ')
     const allowedRoles: RequestedRole[] = ['student', 'instructor', 'admin']
 
-    if (!normalizedName || normalizedName.length < 2 || !normalizedEmail || !password || !role) {
-      return json({ error: 'Full name, email address, password, and requested role are required.' }, 400)
+    if (!normalizedFirstName || !normalizedLastName || !normalizedEmail || !password || !role) {
+      return json({ error: 'First name, last name, email address, password, and requested role are required.' }, 400)
     }
+    if (![normalizedFirstName, normalizedMiddleName, normalizedLastName].filter(Boolean).every((part) => isValidNamePart(part!)) || (normalizedSuffix && (!/^[\p{L}\p{M}0-9 .'-]+$/u.test(normalizedSuffix) || normalizedSuffix.length > 20))) return json({ error: 'Enter a valid personal name.' }, 400)
     if (!isValidEmail(normalizedEmail)) return json({ error: 'Enter a valid email address.' }, 400)
     if (!allowedRoles.includes(role)) return json({ error: 'Select a valid account role.' }, 400)
     if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
@@ -60,7 +76,7 @@ Deno.serve(async (request) => {
       email: normalizedEmail,
       password,
       email_confirm: true,
-      user_metadata: { full_name: normalizedName, requested_role: role },
+      user_metadata: { full_name: normalizedName, first_name: normalizedFirstName, middle_name: normalizedMiddleName, last_name: normalizedLastName, suffix: normalizedSuffix, requested_role: role },
     })
     if (createError || !created.user) {
       if (createError?.message.toLowerCase().includes('already')) return json({ error: 'This email address is already registered.' }, 409)
@@ -72,6 +88,10 @@ Deno.serve(async (request) => {
       auth_user_id: created.user.id,
       email: normalizedEmail,
       full_name: normalizedName,
+      first_name: normalizedFirstName,
+      middle_name: normalizedMiddleName,
+      last_name: normalizedLastName,
+      suffix: normalizedSuffix,
       requested_role: role,
     })
     if (insertError) throw insertError

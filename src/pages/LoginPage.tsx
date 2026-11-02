@@ -144,10 +144,10 @@ export function LoginPage() {
           Email address
           <span className="input-wrap"><Mail size={18} /><input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Enter your registered email" /></span>
         </label>
-        <label className="field-label">
-          Password
-          <span className="input-wrap"><LockKeyhole size={18} /><input type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" /><button type="button" className="icon-button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></span>
-        </label>
+        <div>
+          <div className="mb-1.5 flex items-center justify-between gap-3"><label className="text-sm font-semibold text-slate-700" htmlFor="login-password">Password</label><Link className="text-sm font-bold text-brand-700 hover:text-brand-800" to={`/forgot-password?portal=${portal}`}>Forgot password?</Link></div>
+          <span className="input-wrap"><LockKeyhole size={18} /><input id="login-password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" /><button type="button" className="icon-button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></span>
+        </div>
         <button className={`w-full ${portal === 'admin' ? 'admin-sign-in-button' : 'button-primary'}`} disabled={submitting}>
           {submitting ? 'Signing in…' : `Sign in as ${roleLabels[portal]}`}
         </button>
