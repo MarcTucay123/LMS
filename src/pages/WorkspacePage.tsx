@@ -65,7 +65,7 @@ export function WorkspacePage() {
 
   return (
     <div className="mx-auto max-w-[1500px]">
-      <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-brand-700">Class workspace</p>
@@ -102,11 +102,11 @@ export function WorkspacePage() {
                 <p className="truncate text-xs text-slate-500">Section {selectedClass.section} · {selectedClass.instructor?.full_name}</p>
               </div>
             </div>
-            <Link className="button-secondary" to={`/classes/${selectedClass.id}`}>
+            <Link className="button-secondary w-full sm:w-auto" to={`/classes/${selectedClass.id}`}>
               Full classroom <ExternalLink size={15} />
             </Link>
           </div>
-          <div className="p-5 sm:p-6 lg:p-8">
+          <div className="p-4 sm:p-6 lg:p-8">
             {section === 'materials' && <MaterialsTab classId={selectedClass.id} canManage={canManage} />}
             {section === 'assignments' && <AssignmentsTab classId={selectedClass.id} canManage={canManage} />}
             {section === 'quizzes' && <QuizzesTab classId={selectedClass.id} canManage={canManage} />}

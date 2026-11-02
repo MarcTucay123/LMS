@@ -130,7 +130,7 @@ export function DashboardPage() {
                 <div className="p-5 sm:p-6">
                   <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-brand-700">{classItem.subject?.code ?? 'Subject'}</p>
                   <h3 className="mt-2 min-h-12 text-lg font-extrabold leading-6 text-slate-900">{classItem.subject?.title ?? 'Untitled subject'}</h3>
-                  <div className="mt-5 grid grid-cols-2 gap-3">
+                  <div className="mt-5 grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
                     <div className="class-detail"><UsersRound size={16} /><span><small>Section</small>{classItem.section}</span></div>
                     <div className="class-detail"><Clock3 size={16} /><span><small>Semester</small>{classItem.semester}</span></div>
                   </div>

@@ -18,7 +18,7 @@ export function ClassesPage() {
 
   return (
     <div className="mx-auto max-w-[1500px]">
-      <section className="mb-7 rounded-2xl bg-gradient-to-r from-brand-800 to-brand-600 p-6 text-white shadow-lg shadow-blue-900/10 sm:p-8">
+      <section className="mb-7 rounded-2xl bg-gradient-to-r from-brand-800 to-brand-600 p-4 text-white shadow-lg shadow-blue-900/10 sm:p-8">
         <div className="flex items-start gap-4">
           <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-white/15 ring-1 ring-white/20">
             <GraduationCap size={25} />
@@ -52,7 +52,7 @@ export function ClassesPage() {
               <div className="p-5 sm:p-6">
                 <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-brand-700">{classItem.subject?.code ?? 'Subject'}</p>
                 <h3 className="mt-2 min-h-12 text-lg font-extrabold leading-6 text-slate-900">{classItem.subject?.title ?? 'Untitled subject'}</h3>
-                <div className="mt-5 grid grid-cols-2 gap-3">
+                <div className="mt-5 grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
                   <div className="class-detail"><UsersRound size={16} /><span><small>Section</small>{classItem.section}</span></div>
                   <div className="class-detail"><Clock3 size={16} /><span><small>Semester</small>{classItem.semester}</span></div>
                 </div>

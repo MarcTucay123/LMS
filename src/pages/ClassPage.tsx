@@ -76,13 +76,13 @@ export function ClassPage() {
     <div>
       <Link className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-brand-700" to="/dashboard"><ArrowLeft size={17} /> Back to dashboard</Link>
       <section className="card overflow-hidden">
-        <div className="bg-gradient-to-r from-brand-800 to-brand-600 p-6 text-white sm:p-8">
+        <div className="bg-gradient-to-r from-brand-800 to-brand-600 p-4 text-white sm:p-8">
           <p className="text-sm font-bold uppercase tracking-wider text-blue-100">{classItem.subject?.code}</p>
-          <h1 className="mt-1 text-2xl font-bold">{classItem.subject?.title}</h1>
+          <h1 className="mt-1 text-xl font-bold sm:text-2xl">{classItem.subject?.title}</h1>
           <p className="mt-3 text-sm text-blue-100">Section {classItem.section} · {classItem.semester}, {classItem.school_year} · {classItem.instructor?.full_name}</p>
         </div>
         <div className="overflow-x-auto border-b border-slate-200 px-4"><div className="flex min-w-max gap-1">{tabs.map((tab) => <button key={tab} onClick={() => setActiveTab(tab)} className={`border-b-2 px-4 py-4 text-sm font-semibold capitalize transition ${activeTab === tab ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{tab}</button>)}</div></div>
-        <div className="p-6 sm:p-8">
+        <div className="p-4 sm:p-8">
           {activeTab === 'materials' && <MaterialsTab classId={classItem.id} canManage={canManage} />}
           {activeTab === 'assignments' && <AssignmentsTab classId={classItem.id} canManage={canManage} />}
           {activeTab === 'quizzes' && <QuizzesTab classId={classItem.id} canManage={canManage} />}

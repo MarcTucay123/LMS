@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   BarChart3,
   BookOpen,
@@ -52,13 +52,20 @@ export function AppLayout() {
   const { profile, signOut } = useAuth()
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const closeMenu = () => setMobileMenuOpen(false)
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = previousOverflow }
+  }, [mobileMenuOpen])
+
   if (!profile) return null
 
   const page = location.pathname.startsWith('/classes/')
     ? { title: 'Classroom', subtitle: 'Learning resources and class activities' }
     : pageTitles[location.pathname] ?? pageTitles['/dashboard']
-
-  const closeMenu = () => setMobileMenuOpen(false)
 
   return (
     <div className="min-h-screen bg-[#f5f7fb] lg:grid lg:grid-cols-[278px_minmax(0,1fr)]">
@@ -130,13 +137,13 @@ export function AppLayout() {
       </aside>
 
       <div className="min-w-0 lg:col-start-2">
-        <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-6 lg:h-24 lg:px-8">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-2 border-b border-slate-200 bg-white/95 px-3 backdrop-blur sm:h-20 sm:px-6 lg:h-24 lg:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <button className="grid size-10 shrink-0 place-items-center rounded-xl border border-slate-200 text-slate-600 lg:hidden" onClick={() => setMobileMenuOpen(true)} aria-label="Open navigation">
               <Menu size={21} />
             </button>
             <div className="min-w-0">
-              <h1 className="truncate text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">{page.title}</h1>
+              <h1 className="truncate text-lg font-extrabold tracking-tight text-slate-900 sm:text-2xl">{page.title}</h1>
               <p className="hidden truncate text-sm text-slate-500 sm:block">{page.subtitle}</p>
             </div>
           </div>
@@ -157,8 +164,8 @@ export function AppLayout() {
           </div>
         </header>
 
-        <main className="min-w-0 p-4 sm:p-6 lg:p-8"><Outlet /></main>
-        <footer className="border-t border-slate-200 bg-white px-6 py-5 text-center text-xs text-slate-400 lg:text-right">
+        <main className="min-w-0 p-3 sm:p-6 lg:p-8"><Outlet /></main>
+        <footer className="border-t border-slate-200 bg-white px-4 py-5 text-center text-xs text-slate-400 sm:px-6 lg:text-right">
           ADFC OneCampus Learning Management System
         </footer>
       </div>
