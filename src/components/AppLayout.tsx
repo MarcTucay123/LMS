@@ -33,7 +33,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   '/workspace/announcements': { title: 'Announcements', subtitle: 'Class updates, deadlines, and feedback notices' },
   '/workspace/progress': { title: 'Progress & Reports', subtitle: 'Activity completion and available score summaries' },
   '/admin/users': { title: 'User Accounts', subtitle: 'Manage LMS access, roles, and account status' },
-  '/admin/registrations': { title: 'Registration Approvals', subtitle: 'Approve Gmail applicants, generate IDs, and assign instructors' },
+  '/admin/registrations': { title: 'Registration Approvals', subtitle: 'Approve applicants, generate IDs, and assign instructors' },
   '/admin/classes': { title: 'Class Offerings', subtitle: 'Manage subjects, instructors, and academic offerings' },
   '/admin/sync': { title: 'OneCampus Sync', subtitle: 'Import institutional records and review sync history' },
 }

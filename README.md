@@ -10,7 +10,7 @@ Web-based Learning Management System for Asian Development Foundation College. T
 - React, Vite, TypeScript, React Router, and Tailwind CSS
 - Supabase browser client using only the public anon key
 - Email/password login and logout
-- Public Gmail-only registration for student, instructor, and administrator applicants
+- Public email registration for student, instructor, and administrator applicants
 - Administrator approval with automatically generated OC and account IDs
 - Instructor class assignment during approval with automatic dashboard visibility
 - OneCampus-record-based account activation through a Supabase Edge Function
@@ -180,7 +180,7 @@ Each login portal has a matching fixed-role registration form:
 
 The registration forms do not contain a role selector. The route fixes the requested role and follows this workflow:
 
-1. The applicant opens the registration link from the matching login form and provides a full name, an `@gmail.com` address, and a password.
+1. The applicant opens the registration link from the matching login form and provides a full name, a valid email address (such as Gmail, Yahoo, Outlook, or an institutional address), and a password.
 2. The public `register-account` Edge Function creates the Supabase Auth credential and a pending `registration_applications` row. It does not create an LMS profile or accept a user-supplied OC ID.
 3. The applicant cannot enter the LMS while the application is pending because no active profile exists.
 4. An existing active administrator opens **Registration approvals** and approves or rejects the request.
@@ -195,10 +195,11 @@ npx supabase db push
 npx supabase functions deploy register-account --no-verify-jwt
 ```
 
-If using the Supabase SQL Editor instead of the CLI, paste and run the complete contents of:
+If using the Supabase SQL Editor instead of the CLI, paste and run the complete contents of these files in order:
 
 ```text
 supabase/migrations/202611020005_public_registration_approval.sql
+supabase/migrations/202611020006_allow_all_email_providers.sql
 ```
 
 Then deploy the `register-account` Edge Function from the CLI. The migration alone creates the database approval workflow, but the Edge Function is required for public registration because Auth administration must remain server-side.
@@ -233,7 +234,7 @@ The legacy activation Edge Function remains available for records imported or pr
    - `student2@adfc.edu.ph` sees only MATH 103.
 3. **Direct URL protection:** Sign in as `student1@adfc.edu.ph`, then open `/classes/20000000-0000-4000-8000-000000000003`. The app must show “Class unavailable”; the database returns no class row.
 4. **Authorized URL:** With the same student, open `/classes/20000000-0000-4000-8000-000000000001`. The class overview must load.
-5. **Registration:** Submit a Gmail student application and confirm sign-in is blocked until administrator approval.
+5. **Registration:** Submit a student application using a valid email provider and confirm sign-in is blocked until administrator approval.
 6. **Instructor approval:** Submit an instructor application, select classes during approval, then confirm those classes appear on the approved instructor dashboard.
 7. **Admin approval:** Submit an administrator application and confirm only an existing active administrator can approve it.
 

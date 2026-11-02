@@ -14,8 +14,8 @@ function json(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 }
 
-function isGmail(email: string) {
-  return /^[a-z0-9._%+-]+@gmail[.]com$/i.test(email)
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+[.][^\s@]+$/.test(email)
 }
 
 Deno.serve(async (request) => {
@@ -30,9 +30,9 @@ Deno.serve(async (request) => {
     const allowedRoles: RequestedRole[] = ['student', 'instructor', 'admin']
 
     if (!normalizedName || normalizedName.length < 2 || !normalizedEmail || !password || !role) {
-      return json({ error: 'Full name, Gmail address, password, and requested role are required.' }, 400)
+      return json({ error: 'Full name, email address, password, and requested role are required.' }, 400)
     }
-    if (!isGmail(normalizedEmail)) return json({ error: 'Registration requires an @gmail.com email address.' }, 400)
+    if (!isValidEmail(normalizedEmail)) return json({ error: 'Enter a valid email address.' }, 400)
     if (!allowedRoles.includes(role)) return json({ error: 'Select a valid account role.' }, 400)
     if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
       return json({ error: 'Password must be at least 8 characters and contain uppercase, lowercase, and a number.' }, 400)
@@ -48,11 +48,11 @@ Deno.serve(async (request) => {
       admin.from('profiles').select('id').eq('email', normalizedEmail).maybeSingle(),
     ])
     if (applicationError || profileError) throw applicationError ?? profileError
-    if (existingProfile) return json({ error: 'An LMS account already uses this Gmail address.' }, 409)
+    if (existingProfile) return json({ error: 'An LMS account already uses this email address.' }, 409)
     if (existingApplication) {
       const message = existingApplication.status === 'pending'
-        ? 'This Gmail address already has a pending registration.'
-        : `This Gmail address already has a ${existingApplication.status} registration.`
+        ? 'This email address already has a pending registration.'
+        : `This email address already has a ${existingApplication.status} registration.`
       return json({ error: message }, 409)
     }
 
@@ -63,7 +63,7 @@ Deno.serve(async (request) => {
       user_metadata: { full_name: normalizedName, requested_role: role },
     })
     if (createError || !created.user) {
-      if (createError?.message.toLowerCase().includes('already')) return json({ error: 'This Gmail address is already registered.' }, 409)
+      if (createError?.message.toLowerCase().includes('already')) return json({ error: 'This email address is already registered.' }, 409)
       throw createError ?? new Error('Unable to create authentication account.')
     }
     createdUserId = created.user.id
