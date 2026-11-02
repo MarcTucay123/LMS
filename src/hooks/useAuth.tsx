@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components -- provider and paired hook intentionally share this module */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
+import { pendingRoleCheckKey } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import type { Profile } from '../types/database'
 
@@ -68,6 +69,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(null)
       setError(null)
       if (!nextSession) {
+        setLoading(false)
+        return
+      }
+      if (window.sessionStorage.getItem(pendingRoleCheckKey)) {
         setLoading(false)
         return
       }
