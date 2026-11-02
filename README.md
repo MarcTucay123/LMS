@@ -10,6 +10,9 @@ Web-based Learning Management System for Asian Development Foundation College. T
 - React, Vite, TypeScript, React Router, and Tailwind CSS
 - Supabase browser client using only the public anon key
 - Email/password login and logout
+- Public Gmail-only registration for student, instructor, and administrator applicants
+- Administrator approval with automatically generated OC and account IDs
+- Instructor class assignment during approval with automatic dashboard visibility
 - OneCampus-record-based account activation through a Supabase Edge Function
 - Database-owned `student`, `instructor`, and `admin` roles
 - Role-aware application shell and protected routes
@@ -124,6 +127,7 @@ All sidebar links are backed by routable pages and may be refreshed or opened di
 
    ```powershell
    npx supabase functions deploy activate-account --no-verify-jwt
+   npx supabase functions deploy register-account --no-verify-jwt
    npx supabase functions deploy sync-onecampus
    ```
 
@@ -166,6 +170,33 @@ Do not add `SUPABASE_SERVICE_ROLE_KEY` or `ONECAMPUS_API_KEY` to Vercel. Those a
 
 Do not prefix secrets with `VITE_`. `SUPABASE_SERVICE_ROLE_KEY` and the OneCampus API key are server-side only.
 
+## Public registration and approval
+
+Public registration is available at `/register` and follows this workflow:
+
+1. The applicant provides a full name, an `@gmail.com` address, a password, and a requested role (`student`, `instructor`, or `admin`).
+2. The public `register-account` Edge Function creates the Supabase Auth credential and a pending `registration_applications` row. It does not create an LMS profile or accept a user-supplied OC ID.
+3. The applicant cannot enter the LMS while the application is pending because no active profile exists.
+4. An existing active administrator opens **Registration approvals** and approves or rejects the request.
+5. Approval generates sequential identifiers such as `OC-STU-000001`, `OC-FAC-000002`, or `OC-ADMIN-000003`, plus a matching internal account ID.
+6. For an instructor application, the administrator can select active classes during approval. The database updates `classes.instructor_id`, so those classes automatically appear on the instructor dashboard after sign-in.
+7. Administrator applications are never self-approved; they require an existing active administrator.
+
+To deploy this workflow to hosted Supabase, apply:
+
+```powershell
+npx supabase db push
+npx supabase functions deploy register-account --no-verify-jwt
+```
+
+If using the Supabase SQL Editor instead of the CLI, paste and run the complete contents of:
+
+```text
+supabase/migrations/202611020005_public_registration_approval.sql
+```
+
+Then deploy the `register-account` Edge Function from the CLI. The migration alone creates the database approval workflow, but the Edge Function is required for public registration because Auth administration must remain server-side.
+
 ## Demo accounts
 
 All active demo accounts use password `DemoPass123!`.
@@ -178,13 +209,13 @@ All active demo accounts use password `DemoPass123!`.
 | Student | `student1@adfc.edu.ph` | IT 101 and ENG 102 |
 | Second student | `student2@adfc.edu.ph` | MATH 103 |
 
-Activation test fixture (initially pending):
+Legacy OneCampus activation test fixture (initially pending):
 
 - OneCampus ID: `OC-STU-003`
 - School email: `pending@adfc.edu.ph`
 - Choose a password meeting the displayed requirements.
 
-The activation form never accepts a role. The Edge Function reads the role from `activation_records` and updates the matching pre-created Auth/profile account.
+The legacy activation Edge Function remains available for records imported or pre-created through OneCampus integration. New public applicants use `/register` and do not enter an OC ID.
 
 ## Phase 1 test checklist
 
@@ -196,8 +227,9 @@ The activation form never accepts a role. The Edge Function reads the role from 
    - `student2@adfc.edu.ph` sees only MATH 103.
 3. **Direct URL protection:** Sign in as `student1@adfc.edu.ph`, then open `/classes/20000000-0000-4000-8000-000000000003`. The app must show “Class unavailable”; the database returns no class row.
 4. **Authorized URL:** With the same student, open `/classes/20000000-0000-4000-8000-000000000001`. The class overview must load.
-5. **Activation:** Activate the pending fixture, then sign in using its new password. It should have an active student profile and no classes.
-6. **No open registration:** Supabase email sign-up is disabled, and there is no registration route.
+5. **Registration:** Submit a Gmail student application and confirm sign-in is blocked until administrator approval.
+6. **Instructor approval:** Submit an instructor application, select classes during approval, then confirm those classes appear on the approved instructor dashboard.
+7. **Admin approval:** Submit an administrator application and confirm only an existing active administrator can approve it.
 
 ## Phase 2 test checklist
 

@@ -15,6 +15,7 @@ import {
   RefreshCw,
   ShieldCheck,
   UserCog,
+  UserCheck,
   X,
 } from 'lucide-react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
@@ -32,6 +33,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   '/workspace/announcements': { title: 'Announcements', subtitle: 'Class updates, deadlines, and feedback notices' },
   '/workspace/progress': { title: 'Progress & Reports', subtitle: 'Activity completion and available score summaries' },
   '/admin/users': { title: 'User Accounts', subtitle: 'Manage LMS access, roles, and account status' },
+  '/admin/registrations': { title: 'Registration Approvals', subtitle: 'Approve Gmail applicants, generate IDs, and assign instructors' },
   '/admin/classes': { title: 'Class Offerings', subtitle: 'Manage subjects, instructors, and academic offerings' },
   '/admin/sync': { title: 'OneCampus Sync', subtitle: 'Import institutional records and review sync history' },
 }
@@ -104,6 +106,7 @@ export function AppLayout() {
             {profile.role === 'admin' && (
               <>
                 <p className="px-3 pb-1 pt-5 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Administration</p>
+                <NavLink to="/admin/registrations" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><UserCheck size={19} /> Registrations</NavLink>
                 <NavLink to="/admin/users" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><UserCog size={19} /> User accounts</NavLink>
                 <NavLink to="/admin/classes" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><ShieldCheck size={19} /> Class offerings</NavLink>
                 <NavLink to="/admin/sync" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><RefreshCw size={19} /> OneCampus sync</NavLink>

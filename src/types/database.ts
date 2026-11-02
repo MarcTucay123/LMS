@@ -134,6 +134,34 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['activation_records']['Insert']>
         Relationships: []
       }
+      registration_applications: {
+        Row: {
+          id: string
+          auth_user_id: string
+          email: string
+          full_name: string
+          requested_role: UserRole
+          status: 'pending' | 'approved' | 'rejected'
+          reviewed_by: string | null
+          reviewed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          auth_user_id: string
+          email: string
+          full_name: string
+          requested_role: UserRole
+          status?: 'pending' | 'approved' | 'rejected'
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['registration_applications']['Insert']>
+        Relationships: []
+      }
       sync_logs: {
         Row: {
           id: string
@@ -229,6 +257,14 @@ export interface Database {
         }
         Returns: Database['public']['Tables']['profiles']['Row']
       }
+      admin_approve_registration: {
+        Args: { target_application_id: string; assigned_class_ids?: string[] }
+        Returns: Database['public']['Tables']['profiles']['Row']
+      }
+      admin_reject_registration: {
+        Args: { target_application_id: string }
+        Returns: Database['public']['Tables']['registration_applications']['Row']
+      }
       current_user_role: { Args: Record<string, never>; Returns: UserRole }
       is_admin: { Args: Record<string, never>; Returns: boolean }
       is_active_admin: { Args: Record<string, never>; Returns: boolean }
@@ -252,6 +288,7 @@ export interface Database {
 }
 
 export type Profile = Database['public']['Tables']['profiles']['Row']
+export type RegistrationApplication = Database['public']['Tables']['registration_applications']['Row']
 
 export interface ClassSummary {
   id: string

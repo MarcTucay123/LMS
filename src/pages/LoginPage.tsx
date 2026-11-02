@@ -55,7 +55,7 @@ export function LoginPage() {
     event.preventDefault()
     setError(null)
     if (!email.trim() || !password) {
-      setError('Enter your school email and password.')
+      setError('Enter your email and password.')
       return
     }
 
@@ -80,7 +80,9 @@ export function LoginPage() {
     if (profileError || !profile) {
       await supabase.auth.signOut()
       setSubmitting(false)
-      setError('No LMS profile is linked to this account. Contact an administrator.')
+      setError(signInData.user.user_metadata?.requested_role
+        ? 'Your registration is awaiting administrator approval.'
+        : 'No LMS profile is linked to this account. Contact an administrator.')
       return
     }
     if (profile.status !== 'active') {
@@ -133,8 +135,8 @@ export function LoginPage() {
 
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <label className="field-label">
-          School email
-          <span className="input-wrap"><Mail size={18} /><input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@adfc.edu.ph" /></span>
+          Email address
+          <span className="input-wrap"><Mail size={18} /><input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Enter your registered email" /></span>
         </label>
         <label className="field-label">
           Password
@@ -152,8 +154,8 @@ export function LoginPage() {
       )}
 
       <div className="mt-6 border-t border-slate-100 pt-5 text-center">
-        <p className="text-sm text-slate-600">Don&apos;t have an account? <Link className="font-bold text-brand-700 hover:text-brand-800" to="/activate">Register Account</Link></p>
-        {portal === 'admin' && <p className="mt-2 text-xs text-slate-400">Administrator registration is managed by ADFC.</p>}
+        <p className="text-sm text-slate-600">Don&apos;t have an account? <Link className="font-bold text-brand-700 hover:text-brand-800" to="/register">Register Account</Link></p>
+        <p className="mt-2 text-xs text-slate-400">Gmail registration for all roles requires administrator approval.</p>
       </div>
     </>
   )

@@ -39,5 +39,8 @@ policy = "per_worker"
 [functions.activate-account]
 verify_jwt = false
 
+[functions.register-account]
+verify_jwt = false
+
 [functions.sync-onecampus]
 verify_jwt = true
