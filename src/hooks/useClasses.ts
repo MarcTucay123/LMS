@@ -21,7 +21,7 @@ export function useClasses() {
     setError(null)
     const { data, error: queryError } = await supabase
       .from('classes')
-      .select('id, section, school_year, semester, status, subject:subjects(code, title), instructor:profiles!classes_instructor_id_fkey(full_name)')
+      .select('id, instructor_id, section, school_year, semester, status, subject:subjects(code, title), instructor:profiles!classes_instructor_id_fkey(full_name)')
       .eq('status', 'active')
       .order('created_at')
     if (queryError) setError(queryError.message)
@@ -36,7 +36,7 @@ export function useClasses() {
     let active = true
     void supabase
       .from('classes')
-      .select('id, section, school_year, semester, status, subject:subjects(code, title), instructor:profiles!classes_instructor_id_fkey(full_name)')
+      .select('id, instructor_id, section, school_year, semester, status, subject:subjects(code, title), instructor:profiles!classes_instructor_id_fkey(full_name)')
       .eq('status', 'active')
       .order('created_at')
       .then(({ data, error: queryError }) => {

@@ -1,11 +1,17 @@
 import { useState } from 'react'
 import {
+  BarChart3,
   BookOpen,
   ChevronDown,
+  ClipboardCheck,
+  FileText,
   GraduationCap,
   LayoutDashboard,
   LogOut,
+  Megaphone,
   Menu,
+  MessageCircle,
+  NotebookTabs,
   RefreshCw,
   ShieldCheck,
   UserCog,
@@ -18,6 +24,13 @@ const roleLabels = { student: 'Student', instructor: 'Instructor', admin: 'Admin
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
   '/dashboard': { title: 'Dashboard', subtitle: 'Your learning overview and active classes' },
+  '/classes': { title: 'My Classes', subtitle: 'Authorized assigned or enrolled class workspaces' },
+  '/workspace/materials': { title: 'Learning Materials', subtitle: 'Lessons, files, syllabi, and course resource links' },
+  '/workspace/assignments': { title: 'Assignments', subtitle: 'Activities, submissions, scores, and instructor feedback' },
+  '/workspace/quizzes': { title: 'Online Quizzes', subtitle: 'Class quizzes, attempts, objective scoring, and results' },
+  '/workspace/discussions': { title: 'Discussions', subtitle: 'Moderated conversations for course topics' },
+  '/workspace/announcements': { title: 'Announcements', subtitle: 'Class updates, deadlines, and feedback notices' },
+  '/workspace/progress': { title: 'Progress & Reports', subtitle: 'Activity completion and available score summaries' },
   '/admin/users': { title: 'User Accounts', subtitle: 'Manage LMS access, roles, and account status' },
   '/admin/classes': { title: 'Class Offerings', subtitle: 'Manage subjects, instructors, and academic offerings' },
   '/admin/sync': { title: 'OneCampus Sync', subtitle: 'Import institutional records and review sync history' },
@@ -75,16 +88,22 @@ export function AppLayout() {
             <NavLink to="/dashboard" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}>
               <LayoutDashboard size={19} /> Dashboard
             </NavLink>
-            <NavLink to="/dashboard#classes" onClick={closeMenu} className="portal-nav-link">
-              <BookOpen size={19} /> {profile.role === 'admin' ? 'Class offerings' : 'My classes'}
+            <NavLink to="/classes" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}>
+              <BookOpen size={19} /> {profile.role === 'admin' ? 'Class workspaces' : 'My classes'}
             </NavLink>
           </nav>
 
           <p className="mb-3 mt-8 px-3 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Class workspace</p>
           <nav aria-label="Class workspace" className="space-y-1.5">
-            <NavLink to="/dashboard#classes" onClick={closeMenu} className="portal-nav-link"><BookOpen size={19} /> Learning activities</NavLink>
+            <NavLink to="/workspace/materials" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><FileText size={19} /> Materials</NavLink>
+            <NavLink to="/workspace/assignments" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><ClipboardCheck size={19} /> Assignments</NavLink>
+            <NavLink to="/workspace/quizzes" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><NotebookTabs size={19} /> Quizzes</NavLink>
+            <NavLink to="/workspace/discussions" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><MessageCircle size={19} /> Discussions</NavLink>
+            <NavLink to="/workspace/announcements" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><Megaphone size={19} /> Announcements</NavLink>
+            <NavLink to="/workspace/progress" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><BarChart3 size={19} /> {profile.role === 'student' ? 'My progress' : 'Progress reports'}</NavLink>
             {profile.role === 'admin' && (
               <>
+                <p className="px-3 pb-1 pt-5 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Administration</p>
                 <NavLink to="/admin/users" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><UserCog size={19} /> User accounts</NavLink>
                 <NavLink to="/admin/classes" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><ShieldCheck size={19} /> Class offerings</NavLink>
                 <NavLink to="/admin/sync" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><RefreshCw size={19} /> OneCampus sync</NavLink>

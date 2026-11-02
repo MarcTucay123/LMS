@@ -25,8 +25,40 @@ Web-based Learning Management System for Asian Development Foundation College. T
 - Assignment publishing, private student submissions, grading, and feedback
 - Quiz authoring, protected answer keys, automatic scoring, and one-attempt enforcement
 - Student progress summaries and instructor/admin gradebooks
+- Functional role-aware sidebar navigation for classes, materials, assignments, quizzes, discussions, announcements, and progress reports
 
 All class workspace tabs shown in the application are functional. Database RLS and security-definer RPCs enforce the same role boundaries as the user interface.
+
+## Approved system scope
+
+The LMS is a web-based subsystem of ADFC OneCampus for course content delivery and learning-activity monitoring. It uses authorized shared account, subject, class, instructor, and enrollment identifiers from OneCampus to restrict access to assigned or enrolled classes.
+
+### Included functionality
+
+- Course access for authorized administrators, assigned instructors, and enrolled students
+- Lessons, syllabi, downloadable files, and external course resources
+- Assignment instructions, deadlines, private submissions, status tracking, scores, and feedback
+- Quiz availability, attempts, automatic scoring for objective items, and instructor review workflows
+- Course announcements and moderated discussions
+- Student learning-progress views, outstanding/completed activity tracking, and available activity-score summaries
+- Deadline and feedback notices plus class activity completion and score reports
+
+### Delimitations
+
+- The LMS does not create or maintain OneCampus master student, instructor, subject, or enrollment records.
+- Attendance, enrollment processing, class/room scheduling, faculty evaluation, library circulation, and live video classes are outside the system.
+- Scores shown in the LMS are assignment and quiz activity results only; they are not official final-grade computation.
+- The application is browser-based and has no separate native mobile application.
+- Course content is private to authorized class members and administrators and is not open to the general public.
+
+## Role navigation
+
+All sidebar links are backed by routable pages and may be refreshed or opened directly:
+
+- **All active roles:** Dashboard, authorized classes, materials, assignments, quizzes, discussions, announcements, and progress/reports
+- **Administrator:** User accounts, master class offerings, and OneCampus synchronization in addition to LMS class oversight
+- **Instructor:** Assigned-class authoring, moderation, grading, feedback, and class progress reports
+- **Student:** Enrolled-class resources, submissions, quiz attempts, discussions, notices, and personal progress
 
 ## Prerequisites
 
