@@ -137,7 +137,7 @@ export function AppLayout() {
       </aside>
 
       <div className="min-w-0 lg:col-start-2">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-2 border-b border-slate-200 bg-white/95 px-3 backdrop-blur sm:h-20 sm:px-6 lg:h-24 lg:px-8">
+        <header className="fixed inset-x-0 top-0 z-30 flex h-16 items-center justify-between gap-2 border-b border-slate-200 bg-white/95 px-3 shadow-sm backdrop-blur sm:h-20 sm:px-6 lg:sticky lg:inset-x-auto lg:h-24 lg:px-8 lg:shadow-none">
           <div className="flex min-w-0 items-center gap-3">
             <button className="grid size-10 shrink-0 place-items-center rounded-xl border border-slate-200 text-slate-600 lg:hidden" onClick={() => setMobileMenuOpen(true)} aria-label="Open navigation">
               <Menu size={21} />
@@ -163,6 +163,8 @@ export function AppLayout() {
             </button>
           </div>
         </header>
+
+        <div className="h-16 sm:h-20 lg:hidden" aria-hidden="true" />
 
         <main className="min-w-0 p-3 sm:p-6 lg:p-8"><Outlet /></main>
         <footer className="border-t border-slate-200 bg-white px-4 py-5 text-center text-xs text-slate-400 sm:px-6 lg:text-right">
