@@ -8,8 +8,10 @@ import {
   LogOut,
   Menu,
   MessageSquareText,
+  RefreshCw,
   ShieldCheck,
   TrendingUp,
+  UserCog,
   X,
 } from 'lucide-react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
@@ -19,6 +21,9 @@ const roleLabels = { student: 'Student', instructor: 'Instructor', admin: 'Admin
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
   '/dashboard': { title: 'Dashboard', subtitle: 'Your learning overview and active classes' },
+  '/admin/users': { title: 'User Accounts', subtitle: 'Manage LMS access, roles, and account status' },
+  '/admin/classes': { title: 'Class Offerings', subtitle: 'Manage subjects, instructors, and academic offerings' },
+  '/admin/sync': { title: 'OneCampus Sync', subtitle: 'Import institutional records and review sync history' },
 }
 
 function initials(name: string) {
@@ -83,7 +88,13 @@ export function AppLayout() {
             <div className="portal-nav-link portal-nav-disabled"><Bell size={19} /> Announcements <span>Soon</span></div>
             <div className="portal-nav-link portal-nav-disabled"><MessageSquareText size={19} /> Discussions <span>Soon</span></div>
             <div className="portal-nav-link portal-nav-disabled"><TrendingUp size={19} /> Progress <span>Soon</span></div>
-            {profile.role === 'admin' && <div className="portal-nav-link portal-nav-disabled"><ShieldCheck size={19} /> Administration <span>Phase 2</span></div>}
+            {profile.role === 'admin' && (
+              <>
+                <NavLink to="/admin/users" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><UserCog size={19} /> User accounts</NavLink>
+                <NavLink to="/admin/classes" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><ShieldCheck size={19} /> Class offerings</NavLink>
+                <NavLink to="/admin/sync" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><RefreshCw size={19} /> OneCampus sync</NavLink>
+              </>
+            )}
           </nav>
         </div>
 

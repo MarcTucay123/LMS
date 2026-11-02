@@ -1,0 +1,61 @@
+{
+  "users": [
+    { "id": "OC-FAC-101", "schoolId": "ADFC-FAC-101", "email": "alicia.reyes@adfc.edu.ph", "fullName": "Alicia Reyes", "role": "instructor", "status": "active" },
+    { "id": "OC-FAC-102", "schoolId": "ADFC-FAC-102", "email": "benjamin.cruz@adfc.edu.ph", "fullName": "Benjamin Cruz", "role": "instructor", "status": "active" },
+    { "id": "OC-FAC-103", "schoolId": "ADFC-FAC-103", "email": "carina.santos@adfc.edu.ph", "fullName": "Carina Santos", "role": "instructor", "status": "active" },
+    { "id": "OC-STU-101", "schoolId": "2026-0101", "email": "student01@adfc.edu.ph", "fullName": "Andrea Bautista", "role": "student", "status": "pending" },
+    { "id": "OC-STU-102", "schoolId": "2026-0102", "email": "student02@adfc.edu.ph", "fullName": "Brandon Castillo", "role": "student", "status": "pending" },
+    { "id": "OC-STU-103", "schoolId": "2026-0103", "email": "student03@adfc.edu.ph", "fullName": "Camille Dela Cruz", "role": "student", "status": "pending" },
+    { "id": "OC-STU-104", "schoolId": "2026-0104", "email": "student04@adfc.edu.ph", "fullName": "Daniel Espiritu", "role": "student", "status": "pending" },
+    { "id": "OC-STU-105", "schoolId": "2026-0105", "email": "student05@adfc.edu.ph", "fullName": "Elaine Flores", "role": "student", "status": "pending" },
+    { "id": "OC-STU-106", "schoolId": "2026-0106", "email": "student06@adfc.edu.ph", "fullName": "Francis Garcia", "role": "student", "status": "pending" },
+    { "id": "OC-STU-107", "schoolId": "2026-0107", "email": "student07@adfc.edu.ph", "fullName": "Gabriela Hernandez", "role": "student", "status": "pending" },
+    { "id": "OC-STU-108", "schoolId": "2026-0108", "email": "student08@adfc.edu.ph", "fullName": "Harold Ignacio", "role": "student", "status": "pending" },
+    { "id": "OC-STU-109", "schoolId": "2026-0109", "email": "student09@adfc.edu.ph", "fullName": "Isabel Jimenez", "role": "student", "status": "pending" },
+    { "id": "OC-STU-110", "schoolId": "2026-0110", "email": "student10@adfc.edu.ph", "fullName": "Joshua Lim", "role": "student", "status": "pending" },
+    { "id": "OC-STU-111", "schoolId": "2026-0111", "email": "student11@adfc.edu.ph", "fullName": "Katrina Mendoza", "role": "student", "status": "pending" },
+    { "id": "OC-STU-112", "schoolId": "2026-0112", "email": "student12@adfc.edu.ph", "fullName": "Luis Navarro", "role": "student", "status": "pending" },
+    { "id": "OC-STU-113", "schoolId": "2026-0113", "email": "student13@adfc.edu.ph", "fullName": "Mikaela Ong", "role": "student", "status": "pending" },
+    { "id": "OC-STU-114", "schoolId": "2026-0114", "email": "student14@adfc.edu.ph", "fullName": "Nathan Perez", "role": "student", "status": "pending" },
+    { "id": "OC-STU-115", "schoolId": "2026-0115", "email": "student15@adfc.edu.ph", "fullName": "Olivia Ramos", "role": "student", "status": "pending" },
+    { "id": "OC-STU-116", "schoolId": "2026-0116", "email": "student16@adfc.edu.ph", "fullName": "Patrick Sy", "role": "student", "status": "pending" },
+    { "id": "OC-STU-117", "schoolId": "2026-0117", "email": "student17@adfc.edu.ph", "fullName": "Queenie Tan", "role": "student", "status": "pending" },
+    { "id": "OC-STU-118", "schoolId": "2026-0118", "email": "student18@adfc.edu.ph", "fullName": "Rafael Uy", "role": "student", "status": "pending" },
+    { "id": "OC-STU-119", "schoolId": "2026-0119", "email": "student19@adfc.edu.ph", "fullName": "Sophia Villanueva", "role": "student", "status": "pending" },
+    { "id": "OC-STU-120", "schoolId": "2026-0120", "email": "student20@adfc.edu.ph", "fullName": "Tristan Wong", "role": "student", "status": "pending" }
+  ],
+  "subjects": [
+    { "id": "OC-SUB-101", "code": "IT 201", "title": "Web Systems and Technologies", "description": "Modern web application concepts and development." },
+    { "id": "OC-SUB-102", "code": "IT 202", "title": "Database Management Systems", "description": "Relational database design and administration." },
+    { "id": "OC-SUB-103", "code": "GE 201", "title": "Ethics", "description": "Ethical reasoning in personal and professional life." },
+    { "id": "OC-SUB-104", "code": "MATH 201", "title": "Discrete Mathematics", "description": "Logic, sets, relations, and combinatorics." }
+  ],
+  "classes": [
+    { "id": "OC-CLS-101", "subjectId": "OC-SUB-101", "instructorId": "OC-FAC-101", "section": "BSIT-2A", "schoolYear": "2026-2027", "semester": "First Semester", "status": "active" },
+    { "id": "OC-CLS-102", "subjectId": "OC-SUB-102", "instructorId": "OC-FAC-102", "section": "BSIT-2A", "schoolYear": "2026-2027", "semester": "First Semester", "status": "active" },
+    { "id": "OC-CLS-103", "subjectId": "OC-SUB-103", "instructorId": "OC-FAC-103", "section": "BSIT-2A", "schoolYear": "2026-2027", "semester": "First Semester", "status": "active" },
+    { "id": "OC-CLS-104", "subjectId": "OC-SUB-104", "instructorId": "OC-FAC-102", "section": "BSIT-2B", "schoolYear": "2026-2027", "semester": "First Semester", "status": "active" }
+  ],
+  "enrollments": [
+    { "id": "OC-ENR-101", "classId": "OC-CLS-101", "studentId": "OC-STU-101", "status": "enrolled" },
+    { "id": "OC-ENR-102", "classId": "OC-CLS-101", "studentId": "OC-STU-102", "status": "enrolled" },
+    { "id": "OC-ENR-103", "classId": "OC-CLS-101", "studentId": "OC-STU-103", "status": "enrolled" },
+    { "id": "OC-ENR-104", "classId": "OC-CLS-101", "studentId": "OC-STU-104", "status": "enrolled" },
+    { "id": "OC-ENR-105", "classId": "OC-CLS-101", "studentId": "OC-STU-105", "status": "enrolled" },
+    { "id": "OC-ENR-106", "classId": "OC-CLS-102", "studentId": "OC-STU-106", "status": "enrolled" },
+    { "id": "OC-ENR-107", "classId": "OC-CLS-102", "studentId": "OC-STU-107", "status": "enrolled" },
+    { "id": "OC-ENR-108", "classId": "OC-CLS-102", "studentId": "OC-STU-108", "status": "enrolled" },
+    { "id": "OC-ENR-109", "classId": "OC-CLS-102", "studentId": "OC-STU-109", "status": "enrolled" },
+    { "id": "OC-ENR-110", "classId": "OC-CLS-102", "studentId": "OC-STU-110", "status": "enrolled" },
+    { "id": "OC-ENR-111", "classId": "OC-CLS-103", "studentId": "OC-STU-111", "status": "enrolled" },
+    { "id": "OC-ENR-112", "classId": "OC-CLS-103", "studentId": "OC-STU-112", "status": "enrolled" },
+    { "id": "OC-ENR-113", "classId": "OC-CLS-103", "studentId": "OC-STU-113", "status": "enrolled" },
+    { "id": "OC-ENR-114", "classId": "OC-CLS-103", "studentId": "OC-STU-114", "status": "enrolled" },
+    { "id": "OC-ENR-115", "classId": "OC-CLS-103", "studentId": "OC-STU-115", "status": "enrolled" },
+    { "id": "OC-ENR-116", "classId": "OC-CLS-104", "studentId": "OC-STU-116", "status": "enrolled" },
+    { "id": "OC-ENR-117", "classId": "OC-CLS-104", "studentId": "OC-STU-117", "status": "enrolled" },
+    { "id": "OC-ENR-118", "classId": "OC-CLS-104", "studentId": "OC-STU-118", "status": "enrolled" },
+    { "id": "OC-ENR-119", "classId": "OC-CLS-104", "studentId": "OC-STU-119", "status": "enrolled" },
+    { "id": "OC-ENR-120", "classId": "OC-CLS-104", "studentId": "OC-STU-120", "status": "enrolled" }
+  ]
+}

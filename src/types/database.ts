@@ -131,9 +131,47 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['activation_records']['Insert']>
         Relationships: []
       }
+      sync_logs: {
+        Row: {
+          id: string
+          initiated_by: string | null
+          source: 'mock' | 'onecampus_api'
+          status: 'running' | 'success' | 'failed'
+          records: Json
+          message: string | null
+          started_at: string
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          initiated_by?: string | null
+          source: 'mock' | 'onecampus_api'
+          status: 'running' | 'success' | 'failed'
+          records?: Json
+          message?: string | null
+          started_at?: string
+          completed_at?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['sync_logs']['Insert']>
+        Relationships: []
+      }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      admin_update_user: {
+        Args: {
+          target_user_id: string
+          target_role: UserRole
+          target_status: AccountStatus
+        }
+        Returns: Database['public']['Tables']['profiles']['Row']
+      }
+      current_user_role: { Args: Record<string, never>; Returns: UserRole }
+      is_admin: { Args: Record<string, never>; Returns: boolean }
+      is_active_admin: { Args: Record<string, never>; Returns: boolean }
+      can_access_class: { Args: { target_class_id: string }; Returns: boolean }
+      can_view_profile: { Args: { target_profile_id: string }; Returns: boolean }
+    }
     Enums: {
       user_role: UserRole
       account_status: AccountStatus
