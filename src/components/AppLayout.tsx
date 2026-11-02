@@ -1,16 +1,13 @@
 import { useState } from 'react'
 import {
-  Bell,
   BookOpen,
   ChevronDown,
   GraduationCap,
   LayoutDashboard,
   LogOut,
   Menu,
-  MessageSquareText,
   RefreshCw,
   ShieldCheck,
-  TrendingUp,
   UserCog,
   X,
 } from 'lucide-react'
@@ -83,11 +80,9 @@ export function AppLayout() {
             </NavLink>
           </nav>
 
-          <p className="mb-3 mt-8 px-3 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Learning</p>
-          <nav aria-label="Future learning features" className="space-y-1.5">
-            <div className="portal-nav-link portal-nav-disabled"><Bell size={19} /> Announcements <span>Soon</span></div>
-            <div className="portal-nav-link portal-nav-disabled"><MessageSquareText size={19} /> Discussions <span>Soon</span></div>
-            <div className="portal-nav-link portal-nav-disabled"><TrendingUp size={19} /> Progress <span>Soon</span></div>
+          <p className="mb-3 mt-8 px-3 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Class workspace</p>
+          <nav aria-label="Class workspace" className="space-y-1.5">
+            <NavLink to="/dashboard#classes" onClick={closeMenu} className="portal-nav-link"><BookOpen size={19} /> Learning activities</NavLink>
             {profile.role === 'admin' && (
               <>
                 <NavLink to="/admin/users" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><UserCog size={19} /> User accounts</NavLink>

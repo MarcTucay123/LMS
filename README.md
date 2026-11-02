@@ -1,6 +1,6 @@
 # ADFC OneCampus LMS
 
-Web-based Learning Management System for Asian Development Foundation College. This repository currently contains **Phase 1 — Foundation** and **Phase 2 — Admin and OneCampus Sync**.
+Web-based Learning Management System for Asian Development Foundation College. The planned foundation, administration, synchronization, and class-learning phases are implemented.
 
 - GitHub repository: `https://github.com/MarcTucay123/LMS.git`
 - Hosted Supabase project reference: `ynsyycrrtgzmgjwwlyfm`
@@ -20,8 +20,13 @@ Web-based Learning Management System for Asian Development Foundation College. T
 - Admin-only class offering management
 - OneCampus synchronization Edge Function with real API support and mock fallback
 - Sync history and record counts
+- Secure class materials with private file downloads and external links
+- Class announcements and threaded discussions
+- Assignment publishing, private student submissions, grading, and feedback
+- Quiz authoring, protected answer keys, automatic scoring, and one-attempt enforcement
+- Student progress summaries and instructor/admin gradebooks
 
-Phase 3 and later learning-activity features are intentionally not implemented yet. The class tabs are visible only as a route/wireframe preview.
+All class workspace tabs shown in the application are functional. Database RLS and security-definer RPCs enforce the same role boundaries as the user interface.
 
 ## Prerequisites
 
@@ -162,6 +167,27 @@ The activation form never accepts a role. The Edge Function reads the role from 
 9. Sign in as a student or instructor and directly open `/admin/sync`, `/admin/users`, or `/admin/classes`. The app must redirect to `/dashboard`.
 10. Invoke `sync-onecampus` with a non-admin access token. The function must return HTTP 403 and must not import data.
 
+## Class workspace test checklist
+
+Use the seeded IT 101 class with `instructor@adfc.edu.ph` and `student1@adfc.edu.ph`.
+
+1. **Materials:** Instructor adds an external link or supported file. Student can open it; an unrelated student cannot access its class or storage path.
+2. **Announcements:** Instructor publishes an announcement. Student sees it but has no create/delete controls.
+3. **Discussions:** Student creates a topic and reply. Topic authors and class managers can delete it; non-authors cannot.
+4. **Assignments:**
+   - Instructor creates a published assignment.
+   - Student submits text and/or a private file.
+   - Instructor downloads the file, awards a grade within the point limit, and leaves feedback.
+   - Student sees only their own submission and grade.
+5. **Quizzes:**
+   - Instructor creates a quiz, adds questions and answer keys, then publishes it.
+   - Student sees questions but never receives answer-key rows.
+   - Student submits once and receives an automatic score.
+   - A second submission is rejected by the database.
+6. **Progress:** Student sees only personal results. Instructor/admin sees the enrolled-student gradebook.
+7. **Account status:** Deactivate a user and verify direct class-table and Storage access is rejected after session refresh.
+8. **Direct URL/RLS:** Attempt to access a class outside the account's enrollment/teaching assignments. The class and all child records must remain unavailable.
+
 ## Quality checks
 
 ```powershell
@@ -182,7 +208,8 @@ src/
   components/       layouts, guards, and common states
   hooks/            auth and class data hooks
   lib/supabase.ts   typed browser client
-  pages/            role dashboards, class pages, and admin screens
+  components/classroom/  materials, communication, assessments, and progress
+  pages/                 role dashboards, class pages, and admin screens
   types/            generated-compatible database types
 supabase/
   functions/        Edge Functions

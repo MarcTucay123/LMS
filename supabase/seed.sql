@@ -51,3 +51,45 @@ insert into public.enrollments (onecampus_enrollment_id, class_id, student_id, s
   ('OC-ENR-002', '20000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000011', 'enrolled'),
   ('OC-ENR-003', '20000000-0000-4000-8000-000000000003', '00000000-0000-4000-8000-000000000012', 'enrolled')
 on conflict (class_id, student_id) do nothing;
+
+insert into public.materials (id, class_id, title, description, external_url, created_by) values
+  ('30000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 'Course syllabus', 'Review the course expectations and weekly topics.', 'https://www.adfc.edu.ph/', '00000000-0000-4000-8000-000000000002')
+on conflict (id) do nothing;
+
+insert into public.announcements (id, class_id, title, body, created_by) values
+  ('31000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 'Welcome to IT 101', 'Welcome to the class. Please review the syllabus before our next meeting.', '00000000-0000-4000-8000-000000000002')
+on conflict (id) do nothing;
+
+insert into public.discussion_topics (id, class_id, title, body, created_by) values
+  ('32000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 'Introduce yourself', 'Share your name and one technology topic you want to learn this semester.', '00000000-0000-4000-8000-000000000002')
+on conflict (id) do nothing;
+
+insert into public.discussion_posts (id, topic_id, author_id, body) values
+  ('32100000-0000-4000-8000-000000000001', '32000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000011', 'I am Sofia, and I want to learn how web applications work.')
+on conflict (id) do nothing;
+
+insert into public.assignments (id, class_id, title, instructions, due_at, points, status, created_by) values
+  ('33000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 'Computing reflection', 'Write a short reflection about how computing affects your daily life.', now() + interval '7 days', 20, 'published', '00000000-0000-4000-8000-000000000002')
+on conflict (id) do nothing;
+
+insert into public.submissions (id, assignment_id, student_id, content, status, submitted_at, grade, feedback, graded_by, graded_at) values
+  ('33100000-0000-4000-8000-000000000001', '33000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000011', 'Computing helps me communicate, study, and organize my daily tasks.', 'graded', now(), 18, 'Clear examples and a thoughtful reflection.', '00000000-0000-4000-8000-000000000002', now())
+on conflict (id) do nothing;
+
+insert into public.quizzes (id, class_id, title, description, status, created_by) values
+  ('34000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 'Computing basics', 'A short introductory knowledge check.', 'published', '00000000-0000-4000-8000-000000000002')
+on conflict (id) do nothing;
+
+insert into public.quiz_questions (id, quiz_id, prompt, question_type, options, points, position) values
+  ('34100000-0000-4000-8000-000000000001', '34000000-0000-4000-8000-000000000001', 'Which component performs most calculations in a computer?', 'multiple_choice', '["CPU", "Keyboard", "Monitor", "Printer"]', 5, 1),
+  ('34100000-0000-4000-8000-000000000002', '34000000-0000-4000-8000-000000000001', 'RAM is a type of temporary memory.', 'true_false', '["True", "False"]', 5, 2)
+on conflict (id) do nothing;
+
+insert into public.quiz_answer_keys (question_id, correct_answer) values
+  ('34100000-0000-4000-8000-000000000001', 'CPU'),
+  ('34100000-0000-4000-8000-000000000002', 'True')
+on conflict (question_id) do nothing;
+
+insert into public.quiz_attempts (id, quiz_id, student_id, answers, score, max_score, status, submitted_at) values
+  ('34200000-0000-4000-8000-000000000001', '34000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000011', '{"34100000-0000-4000-8000-000000000001":"CPU","34100000-0000-4000-8000-000000000002":"True"}', 10, 10, 'submitted', now())
+on conflict (id) do nothing;
