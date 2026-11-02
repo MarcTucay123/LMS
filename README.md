@@ -172,9 +172,15 @@ Do not prefix secrets with `VITE_`. `SUPABASE_SERVICE_ROLE_KEY` and the OneCampu
 
 ## Public registration and approval
 
-Public registration is available at `/register` and follows this workflow:
+Each login portal has a matching fixed-role registration form:
 
-1. The applicant provides a full name, an `@gmail.com` address, a password, and a requested role (`student`, `instructor`, or `admin`).
+- Student: `/login?portal=student` → `/register/student`
+- Instructor: `/login?portal=instructor` → `/register/instructor`
+- Administrator: `/login?portal=admin` → `/register/admin`
+
+The registration forms do not contain a role selector. The route fixes the requested role and follows this workflow:
+
+1. The applicant opens the registration link from the matching login form and provides a full name, an `@gmail.com` address, and a password.
 2. The public `register-account` Edge Function creates the Supabase Auth credential and a pending `registration_applications` row. It does not create an LMS profile or accept a user-supplied OC ID.
 3. The applicant cannot enter the LMS while the application is pending because no active profile exists.
 4. An existing active administrator opens **Registration approvals** and approves or rejects the request.

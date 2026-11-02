@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   BookOpenCheck,
@@ -35,7 +35,10 @@ const portalDetails: Record<LoginPortal, { title: string; description: string; i
 export function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const [portal, setPortal] = useState<LoginPortal>('student')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requestedPortal = searchParams.get('portal')
+  const initialPortal: LoginPortal = requestedPortal === 'instructor' || requestedPortal === 'admin' ? requestedPortal : 'student'
+  const [portal, setPortal] = useState<LoginPortal>(initialPortal)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -47,6 +50,9 @@ export function LoginPage() {
 
   const selectPortal = (nextPortal: LoginPortal) => {
     setPortal(nextPortal)
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.set('portal', nextPortal)
+    setSearchParams(nextParams, { replace: true })
     setError(null)
     setPassword('')
   }
@@ -154,8 +160,8 @@ export function LoginPage() {
       )}
 
       <div className="mt-6 border-t border-slate-100 pt-5 text-center">
-        <p className="text-sm text-slate-600">Don&apos;t have an account? <Link className="font-bold text-brand-700 hover:text-brand-800" to="/register">Register Account</Link></p>
-        <p className="mt-2 text-xs text-slate-400">Gmail registration for all roles requires administrator approval.</p>
+        <p className="text-sm text-slate-600">Don&apos;t have an account? <Link className="font-bold text-brand-700 hover:text-brand-800" to={`/register/${portal}`}>Register as {roleLabels[portal]}</Link></p>
+        <p className="mt-2 text-xs text-slate-400">This form creates a pending {roleLabels[portal].toLowerCase()} application for administrator approval.</p>
       </div>
     </>
   )
