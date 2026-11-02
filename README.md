@@ -209,6 +209,21 @@ supabase/migrations/202611020008_expanded_student_registration.sql
 
 Then deploy the `register-account` Edge Function from the CLI. The migration alone creates the database approval workflow, but the Edge Function is required for public registration because Auth administration must remain server-side.
 
+If registration shows that the service has not been deployed, authenticate the CLI and deploy both the pending database migration and function:
+
+```powershell
+npx supabase login
+npx supabase link --project-ref ynsyycrrtgzmgjwwlyfm
+npx supabase db push
+npx supabase functions deploy register-account --project-ref ynsyycrrtgzmgjwwlyfm --no-verify-jwt
+```
+
+Verify the function is present with:
+
+```powershell
+npx supabase functions list --project-ref ynsyycrrtgzmgjwwlyfm
+```
+
 ## Demo accounts
 
 All active demo accounts use password `DemoPass123!`.

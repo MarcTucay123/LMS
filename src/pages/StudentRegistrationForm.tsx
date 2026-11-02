@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { BadgeCheck, CheckCircle2, Eye, EyeOff, Info, LockKeyhole, Mail, UserRound, UsersRound } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { getFunctionErrorMessage } from '../lib/functionError'
 
 interface CatalogClass {
   id: string
@@ -58,9 +59,9 @@ export function StudentRegistrationForm() {
 
   useEffect(() => {
     let active = true
-    void supabase.functions.invoke<{ classes?: CatalogClass[] }>('register-account', { body: { action: 'catalog' } }).then(({ data, error: catalogError }) => {
+    void supabase.functions.invoke<{ classes?: CatalogClass[] }>('register-account', { body: { action: 'catalog' } }).then(async ({ data, error: catalogError }) => {
       if (!active) return
-      if (catalogError) setError('Unable to load current class offerings. Please try again later.')
+      if (catalogError) setError(await getFunctionErrorMessage(catalogError, 'Student registration is temporarily unavailable because the registration service has not been deployed. Please contact the LMS administrator.'))
       else setOfferings((data?.classes ?? []).map(parseOffering).filter((item): item is ClassOffering => Boolean(item)))
       setLoadingCatalog(false)
     })
@@ -103,12 +104,7 @@ export function StudentRegistrationForm() {
     })
     setSubmitting(false)
     if (functionError) {
-      let message = functionError.message
-      if (functionError.context instanceof Response) {
-        const body = await functionError.context.clone().json().catch(() => null) as { error?: string } | null
-        if (body?.error) message = body.error
-      }
-      setError(message)
+      setError(await getFunctionErrorMessage(functionError, 'Student registration is temporarily unavailable because the registration service has not been deployed. Please contact the LMS administrator.'))
       return
     }
     navigate('/login?portal=student', { replace: true, state: { message: data?.message ?? 'Registration submitted for administrator approval.' } })

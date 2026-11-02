@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { BadgeCheck, BookOpenCheck, Eye, EyeOff, GraduationCap, LockKeyhole, Mail, ShieldCheck, UserRound } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { getFunctionErrorMessage } from '../lib/functionError'
 import type { UserRole } from '../types/database'
 import { StudentRegistrationForm } from './StudentRegistrationForm'
 
@@ -57,12 +58,7 @@ export function RegisterPage() {
     })
     setSubmitting(false)
     if (functionError) {
-      let message = functionError.message
-      if (functionError.context instanceof Response) {
-        const body = await functionError.context.json().catch(() => null) as { error?: string } | null
-        message = body?.error ?? message
-      }
-      setError(message)
+      setError(await getFunctionErrorMessage(functionError, 'Registration is temporarily unavailable because the account registration service has not been deployed. Please contact the LMS administrator.'))
       return
     }
     navigate(`/login?portal=${role}`, { replace: true, state: { message: data?.message ?? 'Registration submitted for administrator approval.' } })
