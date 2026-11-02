@@ -182,13 +182,14 @@ Each login portal has a matching fixed-role registration form:
 
 The registration forms do not contain a role selector. The route fixes the requested role and follows this workflow:
 
-1. The applicant opens the registration link from the matching login form and provides a first name, optional middle name, last name, optional suffix, valid email address, and password. The system generates the display name from the structured name fields.
+1. Student applicants provide their Student ID, four-digit class code, structured name, active email, program, year level, block, semester, academic year, selected active class offerings, password, and terms acceptance. Instructor and administrator applicants keep the simpler structured-name, email, and password form. The system generates the display name from the structured name fields.
 2. The public `register-account` Edge Function creates the Supabase Auth credential and a pending `registration_applications` row. It does not create an LMS profile or accept a user-supplied OC ID.
 3. The applicant cannot enter the LMS while the application is pending because no active profile exists.
 4. An existing active administrator opens **Registration approvals** and approves or rejects the request.
-5. Approval generates sequential identifiers such as `OC-STU-000001`, `OC-FAC-000002`, or `OC-ADMIN-000003`, plus a matching internal account ID.
-6. For an instructor application, the administrator can select active classes during approval. The database updates `classes.instructor_id`, so those classes automatically appear on the instructor dashboard after sign-in.
-7. Administrator applications are never self-approved; they require an existing active administrator.
+5. Approval generates a sequential OneCampus identifier such as `OC-STU-000001`, `OC-FAC-000002`, or `OC-ADMIN-000003`. Student profiles use the submitted Student ID as their internal account ID; instructor and administrator account IDs are generated.
+6. Student approval uses the submitted Student ID as `profiles.school_id` and creates enrollments for the selected active offerings atomically.
+7. For an instructor application, the administrator can select active classes during approval. The database updates `classes.instructor_id`, so those classes automatically appear on the instructor dashboard after sign-in.
+8. Administrator applications are never self-approved; they require an existing active administrator.
 
 To deploy this workflow to hosted Supabase, apply:
 
@@ -203,6 +204,7 @@ If using the Supabase SQL Editor instead of the CLI, paste and run the complete 
 supabase/migrations/202611020005_public_registration_approval.sql
 supabase/migrations/202611020006_allow_all_email_providers.sql
 supabase/migrations/202611020007_structured_registration_names.sql
+supabase/migrations/202611020008_expanded_student_registration.sql
 ```
 
 Then deploy the `register-account` Edge Function from the CLI. The migration alone creates the database approval workflow, but the Edge Function is required for public registration because Auth administration must remain server-side.

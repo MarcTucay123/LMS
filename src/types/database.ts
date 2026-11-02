@@ -21,6 +21,12 @@ export interface Database {
           middle_name: string | null
           last_name: string | null
           suffix: string | null
+          class_code: string | null
+          program: string | null
+          year_level: number | null
+          block: string | null
+          academic_year: string | null
+          semester: string | null
           role: UserRole
           status: AccountStatus
           created_at: string
@@ -36,6 +42,12 @@ export interface Database {
           middle_name?: string | null
           last_name?: string | null
           suffix?: string | null
+          class_code?: string | null
+          program?: string | null
+          year_level?: number | null
+          block?: string | null
+          academic_year?: string | null
+          semester?: string | null
           role?: UserRole
           status?: AccountStatus
           created_at?: string
@@ -152,6 +164,15 @@ export interface Database {
           middle_name: string | null
           last_name: string
           suffix: string | null
+          student_id_number: string | null
+          class_code: string | null
+          program: string | null
+          year_level: number | null
+          block: string | null
+          academic_year: string | null
+          semester: string | null
+          selected_class_ids: string[]
+          terms_accepted_at: string | null
           requested_role: UserRole
           status: 'pending' | 'approved' | 'rejected'
           reviewed_by: string | null
@@ -168,6 +189,15 @@ export interface Database {
           middle_name?: string | null
           last_name: string
           suffix?: string | null
+          student_id_number?: string | null
+          class_code?: string | null
+          program?: string | null
+          year_level?: number | null
+          block?: string | null
+          academic_year?: string | null
+          semester?: string | null
+          selected_class_ids?: string[]
+          terms_accepted_at?: string | null
           requested_role: UserRole
           status?: 'pending' | 'approved' | 'rejected'
           reviewed_by?: string | null

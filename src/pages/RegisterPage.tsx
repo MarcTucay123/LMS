@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { BadgeCheck, BookOpenCheck, Eye, EyeOff, GraduationCap, LockKeyhole, Mail, ShieldCheck, UserRound } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import type { UserRole } from '../types/database'
+import { StudentRegistrationForm } from './StudentRegistrationForm'
 
 const roleDetails: Record<UserRole, { label: string; description: string; icon: typeof UserRound }> = {
   student: { label: 'Student', description: 'Register to access your enrolled classes and learning activities after approval.', icon: GraduationCap },
@@ -29,6 +30,7 @@ export function RegisterPage() {
   const [error, setError] = useState<string | null>(null)
 
   if (!isUserRole(role)) return <Navigate to="/register/student" replace />
+  if (role === 'student') return <StudentRegistrationForm />
 
   const details = roleDetails[role]
   const RoleIcon = details.icon

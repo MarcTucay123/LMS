@@ -4,6 +4,7 @@ import { corsHeaders } from '../_shared/cors.ts'
 type RequestedRole = 'student' | 'instructor' | 'admin'
 
 interface RegistrationRequest {
+  action?: 'catalog' | 'register'
   firstName?: string
   middleName?: string | null
   lastName?: string
@@ -11,6 +12,15 @@ interface RegistrationRequest {
   email?: string
   password?: string
   role?: RequestedRole
+  studentIdNumber?: string
+  classCode?: string
+  program?: string
+  yearLevel?: number
+  block?: string
+  academicYear?: string
+  semester?: string
+  selectedClassIds?: string[]
+  termsAccepted?: boolean
 }
 
 function json(body: Record<string, unknown>, status = 200) {
@@ -35,12 +45,36 @@ Deno.serve(async (request) => {
 
   let createdUserId: string | null = null
   try {
-    const { firstName, middleName, lastName, suffix, email, password, role } = await request.json() as RegistrationRequest
+    const body = await request.json() as RegistrationRequest
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    if (!supabaseUrl || !serviceRoleKey) return json({ error: 'Registration service is not configured.' }, 500)
+    const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } })
+
+    if (body.action === 'catalog') {
+      const { data, error: catalogError } = await admin
+        .from('classes')
+        .select('id, section, school_year, semester, subject:subjects(code, title)')
+        .eq('status', 'active')
+        .order('school_year', { ascending: false })
+        .order('section')
+      if (catalogError) throw catalogError
+      return json({ classes: data ?? [] })
+    }
+
+    const { firstName, middleName, lastName, suffix, email, password, role, studentIdNumber, classCode, program, yearLevel, block, academicYear, semester, selectedClassIds, termsAccepted } = body
     const normalizedFirstName = normalizeNamePart(firstName)
     const normalizedMiddleName = normalizeNamePart(middleName)
     const normalizedLastName = normalizeNamePart(lastName)
     const normalizedSuffix = normalizeNamePart(suffix)
     const normalizedEmail = email?.trim().toLowerCase()
+    const normalizedStudentId = studentIdNumber?.trim().toUpperCase() || null
+    const normalizedClassCode = classCode?.trim() || null
+    const normalizedProgram = program?.trim().toUpperCase() || null
+    const normalizedBlock = block?.trim().toUpperCase() || null
+    const normalizedAcademicYear = academicYear?.trim() || null
+    const normalizedSemester = semester?.trim() || null
+    const normalizedClassIds = [...new Set(selectedClassIds ?? [])]
     const normalizedName = [normalizedFirstName, normalizedMiddleName, normalizedLastName, normalizedSuffix].filter(Boolean).join(' ')
     const allowedRoles: RequestedRole[] = ['student', 'instructor', 'admin']
 
@@ -54,17 +88,38 @@ Deno.serve(async (request) => {
       return json({ error: 'Password must be at least 8 characters and contain uppercase, lowercase, and a number.' }, 400)
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    if (!supabaseUrl || !serviceRoleKey) return json({ error: 'Registration service is not configured.' }, 500)
-    const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } })
+    if (role === 'student') {
+      if (!normalizedStudentId || !normalizedClassCode || !normalizedProgram || !yearLevel || !normalizedBlock || !normalizedAcademicYear || !normalizedSemester || normalizedClassIds.length === 0 || !termsAccepted) {
+        return json({ error: 'Complete all required student registration fields and accept the terms.' }, 400)
+      }
+      if (!/^[A-Z0-9-]{4,30}$/.test(normalizedStudentId)) return json({ error: 'Enter a valid Student ID Number using letters, numbers, and hyphens.' }, 400)
+      if (!/^[0-9]{4}$/.test(normalizedClassCode)) return json({ error: 'Class Code must contain exactly 4 digits.' }, 400)
+      if (!Number.isInteger(yearLevel) || yearLevel < 1 || yearLevel > 10) return json({ error: 'Select a valid year level.' }, 400)
+      if (!/^[0-9]{4}-[0-9]{4}$/.test(normalizedAcademicYear)) return json({ error: 'Select a valid academic year.' }, 400)
 
-    const [{ data: existingApplication, error: applicationError }, { data: existingProfile, error: profileError }] = await Promise.all([
+      const { data: selectedClasses, error: selectedClassesError } = await admin
+        .from('classes')
+        .select('id, section, school_year, semester')
+        .in('id', normalizedClassIds)
+        .eq('status', 'active')
+      if (selectedClassesError) throw selectedClassesError
+      const expectedSection = `${normalizedProgram}-${yearLevel}${normalizedBlock}`
+      if ((selectedClasses?.length ?? 0) !== normalizedClassIds.length || selectedClasses?.some((item) => item.section.trim().toUpperCase() !== expectedSection || item.school_year.trim() !== normalizedAcademicYear || item.semester.trim() !== normalizedSemester)) {
+        return json({ error: 'One or more selected subjects do not match the chosen academic details.' }, 400)
+      }
+    } else if (studentIdNumber || classCode || program || yearLevel || block || academicYear || semester || normalizedClassIds.length > 0 || termsAccepted) {
+      return json({ error: 'Student academic details are only valid for student registrations.' }, 400)
+    }
+
+    const [{ data: existingApplication, error: applicationError }, { data: existingProfile, error: profileError }, studentApplicationResult, studentProfileResult] = await Promise.all([
       admin.from('registration_applications').select('status').eq('email', normalizedEmail).maybeSingle(),
       admin.from('profiles').select('id').eq('email', normalizedEmail).maybeSingle(),
+      normalizedStudentId ? admin.from('registration_applications').select('id').ilike('student_id_number', normalizedStudentId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+      normalizedStudentId ? admin.from('profiles').select('id').ilike('school_id', normalizedStudentId).maybeSingle() : Promise.resolve({ data: null, error: null }),
     ])
-    if (applicationError || profileError) throw applicationError ?? profileError
+    if (applicationError || profileError || studentApplicationResult.error || studentProfileResult.error) throw applicationError ?? profileError ?? studentApplicationResult.error ?? studentProfileResult.error
     if (existingProfile) return json({ error: 'An LMS account already uses this email address.' }, 409)
+    if (studentApplicationResult.data || studentProfileResult.data) return json({ error: 'This Student ID Number is already registered.' }, 409)
     if (existingApplication) {
       const message = existingApplication.status === 'pending'
         ? 'This email address already has a pending registration.'
@@ -76,7 +131,7 @@ Deno.serve(async (request) => {
       email: normalizedEmail,
       password,
       email_confirm: true,
-      user_metadata: { full_name: normalizedName, first_name: normalizedFirstName, middle_name: normalizedMiddleName, last_name: normalizedLastName, suffix: normalizedSuffix, requested_role: role },
+      user_metadata: { full_name: normalizedName, first_name: normalizedFirstName, middle_name: normalizedMiddleName, last_name: normalizedLastName, suffix: normalizedSuffix, requested_role: role, student_id_number: normalizedStudentId },
     })
     if (createError || !created.user) {
       if (createError?.message.toLowerCase().includes('already')) return json({ error: 'This email address is already registered.' }, 409)
@@ -93,6 +148,15 @@ Deno.serve(async (request) => {
       last_name: normalizedLastName,
       suffix: normalizedSuffix,
       requested_role: role,
+      student_id_number: role === 'student' ? normalizedStudentId : null,
+      class_code: role === 'student' ? normalizedClassCode : null,
+      program: role === 'student' ? normalizedProgram : null,
+      year_level: role === 'student' ? yearLevel : null,
+      block: role === 'student' ? normalizedBlock : null,
+      academic_year: role === 'student' ? normalizedAcademicYear : null,
+      semester: role === 'student' ? normalizedSemester : null,
+      selected_class_ids: role === 'student' ? normalizedClassIds : [],
+      terms_accepted_at: role === 'student' ? new Date().toISOString() : null,
     })
     if (insertError) throw insertError
 
