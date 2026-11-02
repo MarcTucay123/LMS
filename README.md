@@ -99,6 +99,23 @@ All class workspace tabs shown in the application are functional. Database RLS a
 
 Supabase automatically provides `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to deployed Edge Functions. The service-role key must never be added to `.env`, Vite variables, or browser code.
 
+## Vercel deployment
+
+The repository includes `vercel.json` with the Vite build settings and an SPA rewrite for React Router routes.
+
+1. Import or connect `MarcTucay123/LMS` in Vercel and set the production branch to `main`.
+2. In **Project Settings → Environment Variables**, add these variables for Production, Preview, and Development:
+
+   ```env
+   VITE_SUPABASE_URL=https://ynsyycrrtgzmgjwwlyfm.supabase.co
+   VITE_SUPABASE_PUBLISHABLE_KEY=<hosted Supabase publishable key>
+   ```
+
+3. Keep the project root directory at the repository root. Vercel will run `npm run build` and serve `dist`.
+4. Push to `main` or select **Deployments → Redeploy** to create the production deployment.
+
+Do not add `SUPABASE_SERVICE_ROLE_KEY` or `ONECAMPUS_API_KEY` to Vercel. Those are Supabase Edge Function secrets, not frontend variables.
+
 ## Environment variables
 
 ### Browser (`.env`)
