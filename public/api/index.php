@@ -216,7 +216,7 @@ function select_enrollments(array $filters): array
     $user = require_active_user();
     $classId = (string)(filter_value($filters, 'class_id') ?? '');
     if ($classId === '') fail('A class filter is required.');
-    if (!class_manage($classId, $user) && $user['role'] !== 'student') fail('Access denied.', 403);
+    if (!class_report_access($classId, $user) && $user['role'] !== 'student') fail('Access denied.', 403);
     if ($user['role'] === 'student' && !class_access($classId, $user)) fail('Access denied.', 403);
     $sql = 'SELECT e.*, JSON_OBJECT("id",p.id,"full_name",p.full_name,"school_id",p.school_id) student FROM enrollments e JOIN profiles p ON p.id=e.student_id WHERE e.class_id=?';
     $params = [$classId];
@@ -253,7 +253,7 @@ function select_class_children(string $table, array $filters, array $orders): ar
         if (($filter['type'] ?? '') !== 'neq' || ($filter['column'] ?? '') !== 'status') continue;
         $sql .= ' AND status<>?'; $params[] = $filter['value'];
     }
-    if (in_array($table, ['assignments','quizzes'], true) && !class_manage($classId, $user)) $sql .= " AND status<>'draft'";
+    if (in_array($table, ['assignments','quizzes'], true) && !class_report_access($classId, $user)) $sql .= " AND status<>'draft'";
     $allowedOrders = ['created_at', 'due_at'];
     $sql .= order_clause($orders, $allowedOrders, $table === 'assignments' ? 'due_at ASC' : 'created_at DESC');
     return fetch_all($sql, $params, $table);
@@ -289,8 +289,8 @@ function select_submissions(array $filters, array $orders): array
     foreach ($classRows as $row) if (!class_access($row['class_id'], $user)) fail('Access denied.', 403);
     $sql = "SELECT s.*, JSON_OBJECT('full_name',p.full_name,'school_id',p.school_id) student FROM submissions s JOIN profiles p ON p.id=s.student_id WHERE s.assignment_id IN ($placeholders)";
     $params = $ids;
-    $allManaged = count($classRows) > 0; foreach ($classRows as $row) $allManaged = $allManaged && class_manage($row['class_id'], $user);
-    if (!$allManaged) { $sql .= ' AND s.student_id=?'; $params[] = $user['id']; }
+    $canViewReports = count($classRows) > 0; foreach ($classRows as $row) $canViewReports = $canViewReports && class_report_access($row['class_id'], $user);
+    if (!$canViewReports) { $sql .= ' AND s.student_id=?'; $params[] = $user['id']; }
     $sql .= qualified_order_clause($orders, ['submitted_at'], 's', 's.submitted_at DESC');
     $rows = fetch_all($sql, $params, 'submissions'); foreach ($rows as &$row) $row['student'] = json_decode($row['student'], true); return $rows;
 }
@@ -311,8 +311,8 @@ function select_attempts(array $filters): array
     $classes = fetch_all("SELECT DISTINCT class_id FROM quizzes WHERE id IN ($placeholders)", $ids);
     foreach ($classes as $row) if (!class_access($row['class_id'], $user)) fail('Access denied.', 403);
     $sql = "SELECT * FROM quiz_attempts WHERE quiz_id IN ($placeholders)"; $params = $ids;
-    $allManaged = count($classes) > 0; foreach ($classes as $row) $allManaged = $allManaged && class_manage($row['class_id'], $user);
-    if (!$allManaged) { $sql .= ' AND student_id=?'; $params[] = $user['id']; }
+    $canViewReports = count($classes) > 0; foreach ($classes as $row) $canViewReports = $canViewReports && class_report_access($row['class_id'], $user);
+    if (!$canViewReports) { $sql .= ' AND student_id=?'; $params[] = $user['id']; }
     return fetch_all($sql, $params, 'quiz_attempts');
 }
 
@@ -335,6 +335,7 @@ function query_insert(string $table, array $values): array
     if ($table === 'classes') require_admin();
     elseif (in_array($table, ['discussion_topics','discussion_posts'], true)) {
         $classId = $table === 'discussion_topics' ? (string)($values['class_id'] ?? '') : class_id_for_topic((string)($values['topic_id'] ?? ''));
+        if ($user['role'] === 'admin') fail('Administrators have read-only discussion access.', 403);
         if ($classId === '' || !class_access($classId, $user)) fail('Access denied.', 403);
     } else {
         $classId = insert_class_id($table, $values);
@@ -429,6 +430,7 @@ function query_delete(string $table, array $filters): array
     $classId = class_id_for_record($table, $id); if (!$classId) return [];
     $user = require_active_user();
     if ($table === 'discussion_topics') {
+        if ($user['role'] === 'admin') fail('Administrators have read-only discussion access.', 403);
         $stmt = db()->prepare('SELECT created_by FROM discussion_topics WHERE id=?'); $stmt->execute([$id]);
         if ($stmt->fetchColumn() !== $user['id'] && !class_manage($classId, $user)) fail('Access denied.', 403);
     } elseif (!class_manage($classId, $user)) fail('Access denied.', 403);
@@ -542,7 +544,7 @@ function register_account(array $body): never
         $rows=fetch_all("SELECT c.id,c.section,c.school_year,c.semester,JSON_OBJECT('code',s.code,'title',s.title) subject FROM classes c JOIN subjects s ON s.id=c.subject_id WHERE c.status='active' ORDER BY c.school_year DESC,c.section ASC",[],'classes');
         foreach($rows as &$row)$row['subject']=json_decode($row['subject'],true);json_response(['classes'=>$rows]);
     }
-    $role=(string)($body['role']??'');if(!in_array($role,['student','instructor','admin'],true))fail('Select a valid registration role.');
+    $role=(string)($body['role']??'');if(!in_array($role,['student','instructor'],true))fail('Public registration is available only for students and instructors.',403);
     $first=valid_name($body['firstName']??null,true);$middle=valid_name($body['middleName']??null);$last=valid_name($body['lastName']??null,true);$suffix=trim((string)($body['suffix']??''))?:null;
     $email=strtolower(trim((string)($body['email']??'')));if(!filter_var($email,FILTER_VALIDATE_EMAIL))fail('Use a valid email address.');
     $password=(string)($body['password']??'');validate_password($password);$full=implode(' ',array_filter([$first,$middle,$last,$suffix]));
@@ -594,17 +596,17 @@ function storage_upload(array $request): never
 
 function storage_remove(array $request): never
 {
-    global $config;$bucket=(string)($request['bucket']??'');$paths=is_array($request['paths']??null)?$request['paths']:[];$user=require_active_user();foreach($paths as $raw){$path=clean_storage_path((string)$raw);$classId=explode('/',$path)[0]??'';if($bucket==='materials'&&!class_manage($classId,$user))fail('Access denied.',403);if($bucket==='submissions'&&!class_manage($classId,$user)&&!str_contains('/'.$path.'/','/'.$user['id'].'/'))fail('Access denied.',403);$file=$config['storage_path'].DIRECTORY_SEPARATOR.$bucket.DIRECTORY_SEPARATOR.str_replace('/',DIRECTORY_SEPARATOR,$path);if(is_file($file))unlink($file);}json_response([]);
+    global $config;$bucket=(string)($request['bucket']??'');$paths=is_array($request['paths']??null)?$request['paths']:[];$user=require_active_user();foreach($paths as $raw){$path=clean_storage_path((string)$raw);$classId=explode('/',$path)[0]??'';if($bucket==='materials'&&!class_manage($classId,$user))fail('Access denied.',403);if($bucket==='submissions'&&!class_manage($classId,$user)&&($user['role']!=='student'||!str_contains('/'.$path.'/','/'.$user['id'].'/')))fail('Access denied.',403);$file=$config['storage_path'].DIRECTORY_SEPARATOR.$bucket.DIRECTORY_SEPARATOR.str_replace('/',DIRECTORY_SEPARATOR,$path);if(is_file($file))unlink($file);}json_response([]);
 }
 
 function storage_signed_url(array $request): never
 {
-    global $config;$bucket=(string)($request['bucket']??'');$path=clean_storage_path((string)($request['path']??''));$expires=time()+min(300,max(10,(int)($request['expiresIn']??60)));$classId=explode('/',$path)[0]??'';$user=require_active_user();if(!class_access($classId,$user))fail('Access denied.',403);if($bucket==='submissions'&&!class_manage($classId,$user)&&!str_contains('/'.$path.'/','/'.$user['id'].'/'))fail('Access denied.',403);$token=hash_hmac('sha256',"$bucket|$path|$expires",session_id());$url=$config['app_url'].'/api/index.php?action=storage.download&bucket='.rawurlencode($bucket).'&path='.rawurlencode($path).'&expires='.$expires.'&token='.$token;json_response(['signedUrl'=>$url]);
+    global $config;$bucket=(string)($request['bucket']??'');$path=clean_storage_path((string)($request['path']??''));$expires=time()+min(300,max(10,(int)($request['expiresIn']??60)));$classId=explode('/',$path)[0]??'';$user=require_active_user();if(!class_access($classId,$user))fail('Access denied.',403);if($bucket==='submissions'&&!class_report_access($classId,$user)&&!str_contains('/'.$path.'/','/'.$user['id'].'/'))fail('Access denied.',403);$token=hash_hmac('sha256',"$bucket|$path|$expires",session_id());$url=$config['app_url'].'/api/index.php?action=storage.download&bucket='.rawurlencode($bucket).'&path='.rawurlencode($path).'&expires='.$expires.'&token='.$token;json_response(['signedUrl'=>$url]);
 }
 
 function download_file(): never
 {
-    global $config;$bucket=(string)($_GET['bucket']??'');$path=clean_storage_path((string)($_GET['path']??''));$expires=(int)($_GET['expires']??0);$token=(string)($_GET['token']??'');if($expires<time()||!hash_equals(hash_hmac('sha256',"$bucket|$path|$expires",session_id()),$token))fail('This download link is invalid or expired.',403);$user=require_active_user();$classId=explode('/',$path)[0]??'';if(!class_access($classId,$user))fail('Access denied.',403);if($bucket==='submissions'&&!class_manage($classId,$user)&&!str_contains('/'.$path.'/','/'.$user['id'].'/'))fail('Access denied.',403);$file=$config['storage_path'].DIRECTORY_SEPARATOR.$bucket.DIRECTORY_SEPARATOR.str_replace('/',DIRECTORY_SEPARATOR,$path);if(!is_file($file))fail('File not found.',404);header('Content-Type: application/octet-stream');header('Content-Disposition: attachment; filename="'.basename($file).'"');header('Content-Length: '.filesize($file));readfile($file);exit;
+    global $config;$bucket=(string)($_GET['bucket']??'');$path=clean_storage_path((string)($_GET['path']??''));$expires=(int)($_GET['expires']??0);$token=(string)($_GET['token']??'');if($expires<time()||!hash_equals(hash_hmac('sha256',"$bucket|$path|$expires",session_id()),$token))fail('This download link is invalid or expired.',403);$user=require_active_user();$classId=explode('/',$path)[0]??'';if(!class_access($classId,$user))fail('Access denied.',403);if($bucket==='submissions'&&!class_report_access($classId,$user)&&!str_contains('/'.$path.'/','/'.$user['id'].'/'))fail('Access denied.',403);$file=$config['storage_path'].DIRECTORY_SEPARATOR.$bucket.DIRECTORY_SEPARATOR.str_replace('/',DIRECTORY_SEPARATOR,$path);if(!is_file($file))fail('File not found.',404);header('Content-Type: application/octet-stream');header('Content-Disposition: attachment; filename="'.basename($file).'"');header('Content-Length: '.filesize($file));readfile($file);exit;
 }
 
 function clean_storage_path(string $path): string

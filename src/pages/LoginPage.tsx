@@ -160,8 +160,7 @@ export function LoginPage() {
       )}
 
       <div className="mt-6 border-t border-slate-100 pt-5 text-center">
-        <p className="text-sm text-slate-600">Don&apos;t have an account? <Link className="font-bold text-brand-700 hover:text-brand-800" to={`/register/${portal}`}>Register as {roleLabels[portal]}</Link></p>
-        <p className="mt-2 text-xs text-slate-400">This form creates a pending {roleLabels[portal].toLowerCase()} application for administrator approval.</p>
+        {portal === 'admin' ? <p className="text-sm text-slate-500">Administrator accounts are provisioned by an existing administrator, installation seed, or OneCampus.</p> : <><p className="text-sm text-slate-600">Don&apos;t have an account? <Link className="font-bold text-brand-700 hover:text-brand-800" to={`/register/${portal}`}>Register as {roleLabels[portal]}</Link></p><p className="mt-2 text-xs text-slate-400">This form creates a pending {roleLabels[portal].toLowerCase()} application for administrator approval.</p></>}
       </div>
     </>
   )

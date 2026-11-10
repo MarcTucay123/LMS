@@ -51,11 +51,11 @@ storage/uploads/      private runtime files; ignored by Git
 ## Supported workflows
 
 - Session login, logout, recovery-token password reset, and account activation
-- Public registration with administrator approval/rejection
+- Public student and instructor registration with administrator approval/rejection; administrator accounts are provisioned separately
 - Role and account-status administration
 - Class offering administration and OneCampus synchronization
 - Role-scoped dashboards and classroom access
-- Materials, announcements, discussions, assignments, grading, quizzes, and progress reports
+- Instructor-managed materials, announcements, discussions, assignments, grading, and quizzes, with administrator read-only classroom monitoring and progress reporting
 - Authorized private upload, removal, and signed download flows
 
 MariaDB does not provide Supabase Row Level Security. Every PHP endpoint therefore performs explicit session, role, class-membership, ownership, and instructor/administrator checks before reading or changing records.

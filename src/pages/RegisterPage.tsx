@@ -1,19 +1,18 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { BadgeCheck, BookOpenCheck, Eye, EyeOff, GraduationCap, LockKeyhole, Mail, ShieldCheck, UserRound } from 'lucide-react'
+import { BadgeCheck, BookOpenCheck, Eye, EyeOff, GraduationCap, LockKeyhole, Mail, UserRound } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { getFunctionErrorMessage } from '../lib/functionError'
 import type { UserRole } from '../types/database'
 import { StudentRegistrationForm } from './StudentRegistrationForm'
 
-const roleDetails: Record<UserRole, { label: string; description: string; icon: typeof UserRound }> = {
+const roleDetails: Record<Exclude<UserRole, 'admin'>, { label: string; description: string; icon: typeof UserRound }> = {
   student: { label: 'Student', description: 'Register to access your enrolled classes and learning activities after approval.', icon: GraduationCap },
   instructor: { label: 'Instructor', description: 'Register to manage classes assigned by an administrator after approval.', icon: BookOpenCheck },
-  admin: { label: 'Administrator', description: 'Register for administrative access. An existing active administrator must approve you.', icon: ShieldCheck },
 }
 
-function isUserRole(value: string | undefined): value is UserRole {
-  return value === 'student' || value === 'instructor' || value === 'admin'
+function isPublicRegistrationRole(value: string | undefined): value is Exclude<UserRole, 'admin'> {
+  return value === 'student' || value === 'instructor'
 }
 
 export function RegisterPage() {
@@ -30,7 +29,7 @@ export function RegisterPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  if (!isUserRole(role)) return <Navigate to="/register/student" replace />
+  if (!isPublicRegistrationRole(role)) return <Navigate to="/login?portal=admin" replace />
   if (role === 'student') return <StudentRegistrationForm />
 
   const details = roleDetails[role]
@@ -67,7 +66,7 @@ export function RegisterPage() {
   return (
     <>
       <div className="mb-6 flex items-start gap-3">
-        <div className={`grid size-11 shrink-0 place-items-center rounded-xl ${role === 'admin' ? 'bg-slate-900 text-white' : 'bg-blue-50 text-brand-700'}`}><RoleIcon size={22} /></div>
+        <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-blue-50 text-brand-700"><RoleIcon size={22} /></div>
         <div>
           <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">{details.label} registration</h2>
           <p className="mt-1 text-sm leading-5 text-slate-500">{details.description}</p>
@@ -89,7 +88,7 @@ export function RegisterPage() {
         <label className="field-label">Create password<span className="input-wrap"><LockKeyhole size={18} /><input type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" /><button type="button" className="icon-button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></span></label>
         <label className="field-label">Confirm password<span className="input-wrap"><BadgeCheck size={18} /><input type={showPassword ? 'text' : 'password'} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" /></span></label>
         <p className="text-xs text-slate-500">Use at least 8 characters with uppercase, lowercase, and a number. Your {details.label.toLowerCase()} account remains pending until approved.</p>
-        <button className={`w-full ${role === 'admin' ? 'admin-sign-in-button' : 'button-primary'}`} disabled={submitting}>{submitting ? 'Submitting…' : `Register as ${details.label}`}</button>
+        <button className="button-primary w-full" disabled={submitting}>{submitting ? 'Submitting…' : `Register as ${details.label}`}</button>
       </form>
       <p className="mt-5 text-center text-sm text-slate-600">Already registered? <Link className="font-bold text-brand-700" to={`/login?portal=${role}`}>Back to {details.label.toLowerCase()} sign in</Link></p>
     </>

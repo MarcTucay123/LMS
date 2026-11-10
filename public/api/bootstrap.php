@@ -135,11 +135,16 @@ function class_access(string $classId, ?array $user = null): bool
 function class_manage(string $classId, ?array $user = null): bool
 {
     $user ??= require_active_user();
-    if ($user['role'] === 'admin') return true;
     if ($user['role'] !== 'instructor') return false;
     $stmt = db()->prepare('SELECT 1 FROM classes WHERE id=? AND instructor_id=?');
     $stmt->execute([$classId, $user['id']]);
     return (bool)$stmt->fetchColumn();
+}
+
+function class_report_access(string $classId, ?array $user = null): bool
+{
+    $user ??= require_active_user();
+    return $user['role'] === 'admin' || class_manage($classId, $user);
 }
 
 function require_class_access(string $classId): array
@@ -152,7 +157,7 @@ function require_class_access(string $classId): array
 function require_class_manager(string $classId): array
 {
     $user = require_active_user();
-    if (!class_manage($classId, $user)) fail('Only the assigned instructor or an administrator can manage this class.', 403);
+    if (!class_manage($classId, $user)) fail('Only the assigned instructor can manage instructional content for this class.', 403);
     return $user;
 }
 

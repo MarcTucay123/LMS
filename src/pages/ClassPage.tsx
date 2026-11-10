@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Eye } from 'lucide-react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { EmptyState, ErrorState, LoadingState } from '../components/ScreenState'
 import { supabase } from '../lib/supabase'
@@ -70,7 +70,10 @@ export function ClassPage() {
   if (loading) return <LoadingState label="Checking class access…" />
   if (error) return <ErrorState message={error} onRetry={() => void load()} />
   if (notFound || !classItem) return <EmptyState title="Class unavailable" description="This class does not exist or your account is not allowed to access it." />
-  const canManage = profile?.role === 'admin' || classItem.instructor_id === profile?.id
+  const canManageContent = profile?.role === 'instructor' && classItem.instructor_id === profile.id
+  const isStudent = profile?.role === 'student'
+  const canViewReports = profile?.role === 'admin' || canManageContent
+  const isMonitoring = profile?.role === 'admin'
 
   return (
     <div>
@@ -81,14 +84,15 @@ export function ClassPage() {
           <h1 className="mt-1 text-xl font-bold sm:text-2xl">{classItem.subject?.title}</h1>
           <p className="mt-3 text-sm text-blue-100">Section {classItem.section} · {classItem.semester}, {classItem.school_year} · {classItem.instructor?.full_name}</p>
         </div>
+        {isMonitoring && <div className="flex items-start gap-3 border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:px-8"><Eye className="mt-0.5 shrink-0" size={18} /><div><p className="font-extrabold">Administrator monitoring view</p><p className="mt-0.5 text-amber-800">You can inspect classroom content, submissions, gradebook, and progress reports. Only the assigned instructor can create learning content, grade work, post announcements, or moderate discussions.</p></div></div>}
         <div className="overflow-x-auto border-b border-slate-200 px-4"><div className="flex min-w-max gap-1">{tabs.map((tab) => <button key={tab} onClick={() => setActiveTab(tab)} className={`border-b-2 px-4 py-4 text-sm font-semibold capitalize transition ${activeTab === tab ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{tab}</button>)}</div></div>
         <div className="p-4 sm:p-8">
-          {activeTab === 'materials' && <MaterialsTab classId={classItem.id} canManage={canManage} />}
-          {activeTab === 'assignments' && <AssignmentsTab classId={classItem.id} canManage={canManage} />}
-          {activeTab === 'quizzes' && <QuizzesTab classId={classItem.id} canManage={canManage} />}
-          {activeTab === 'discussions' && <DiscussionsTab classId={classItem.id} canManage={canManage} />}
-          {activeTab === 'announcements' && <AnnouncementsTab classId={classItem.id} canManage={canManage} />}
-          {activeTab === 'progress' && <ProgressTab classId={classItem.id} canManage={canManage} />}
+          {activeTab === 'materials' && <MaterialsTab classId={classItem.id} canManage={canManageContent} />}
+          {activeTab === 'assignments' && <AssignmentsTab classId={classItem.id} canManage={canManageContent} canViewReports={canViewReports} isStudent={isStudent} />}
+          {activeTab === 'quizzes' && <QuizzesTab classId={classItem.id} canManage={canManageContent} isStudent={isStudent} />}
+          {activeTab === 'discussions' && <DiscussionsTab classId={classItem.id} canManage={canManageContent} canParticipate={!isMonitoring} />}
+          {activeTab === 'announcements' && <AnnouncementsTab classId={classItem.id} canManage={canManageContent} />}
+          {activeTab === 'progress' && <ProgressTab classId={classItem.id} canViewReports={canViewReports} />}
         </div>
       </section>
     </div>

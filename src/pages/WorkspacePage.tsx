@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpen, ExternalLink } from 'lucide-react'
+import { ArrowRight, BookOpen, ExternalLink, Eye } from 'lucide-react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { AnnouncementsTab } from '../components/classroom/AnnouncementsTab'
 import { AssignmentsTab } from '../components/classroom/AssignmentsTab'
@@ -54,7 +54,10 @@ export function WorkspacePage() {
 
   const requestedClassId = searchParams.get('class')
   const selectedClass = classes.find((item) => item.id === requestedClassId) ?? classes[0] ?? null
-  const canManage = Boolean(selectedClass && (profile.role === 'admin' || selectedClass.instructor_id === profile.id))
+  const canManageContent = Boolean(selectedClass && profile.role === 'instructor' && selectedClass.instructor_id === profile.id)
+  const isStudent = profile.role === 'student'
+  const canViewReports = profile.role === 'admin' || canManageContent
+  const isMonitoring = profile.role === 'admin'
   const details = workspaceSections[section]
 
   const selectClass = (classId: string) => {
@@ -106,13 +109,14 @@ export function WorkspacePage() {
               Full classroom <ExternalLink size={15} />
             </Link>
           </div>
+          {isMonitoring && <div className="flex items-start gap-3 border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-900 sm:px-6"><Eye className="mt-0.5 shrink-0" size={18} /><div><p className="font-extrabold">Administrator monitoring view</p><p className="mt-0.5 text-amber-800">This workspace is read-only for academic content. You can review class activity and reports, while the assigned instructor retains teaching and grading controls.</p></div></div>}
           <div className="p-4 sm:p-6 lg:p-8">
-            {section === 'materials' && <MaterialsTab classId={selectedClass.id} canManage={canManage} />}
-            {section === 'assignments' && <AssignmentsTab classId={selectedClass.id} canManage={canManage} />}
-            {section === 'quizzes' && <QuizzesTab classId={selectedClass.id} canManage={canManage} />}
-            {section === 'discussions' && <DiscussionsTab classId={selectedClass.id} canManage={canManage} />}
-            {section === 'announcements' && <AnnouncementsTab classId={selectedClass.id} canManage={canManage} />}
-            {section === 'progress' && <ProgressTab classId={selectedClass.id} canManage={canManage} />}
+            {section === 'materials' && <MaterialsTab classId={selectedClass.id} canManage={canManageContent} />}
+            {section === 'assignments' && <AssignmentsTab classId={selectedClass.id} canManage={canManageContent} canViewReports={canViewReports} isStudent={isStudent} />}
+            {section === 'quizzes' && <QuizzesTab classId={selectedClass.id} canManage={canManageContent} isStudent={isStudent} />}
+            {section === 'discussions' && <DiscussionsTab classId={selectedClass.id} canManage={canManageContent} canParticipate={!isMonitoring} />}
+            {section === 'announcements' && <AnnouncementsTab classId={selectedClass.id} canManage={canManageContent} />}
+            {section === 'progress' && <ProgressTab classId={selectedClass.id} canViewReports={canViewReports} />}
           </div>
           <div className="border-t border-slate-100 px-5 py-4 text-right sm:px-6">
             <Link to="/classes" className="inline-flex items-center gap-2 text-sm font-bold text-brand-700">Browse all classes <ArrowRight size={16} /></Link>
