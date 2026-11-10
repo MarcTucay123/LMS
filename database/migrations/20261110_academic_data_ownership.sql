@@ -1,4 +1,4 @@
-USE adfc_lms;
+USE lms_db;
 
 -- Non-destructive migration for shared-system ownership metadata.
 -- Safe to run against an existing LMS database; no tables or records are dropped.

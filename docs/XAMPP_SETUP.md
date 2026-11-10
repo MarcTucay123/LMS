@@ -27,7 +27,7 @@ Vite copies `public/.htaccess` and `public/api` into `D:\LMS\dist`, so the produ
 Defaults in `public/api/config.php` work with a standard local XAMPP installation:
 
 ```text
-database: adfc_lms
+database: lms_db
 host:     127.0.0.1
 port:     3306
 user:     root
@@ -58,13 +58,13 @@ Start MySQL/MariaDB in the XAMPP Control Panel, then import the schema and seed:
 For an existing database, apply the non-destructive ownership migration instead:
 
 ```powershell
-& C:\xampp\mysql\bin\mysql.exe -u root adfc_lms -e "source D:/LMS/database/migrations/20261110_academic_data_ownership.sql;"
+& C:\xampp\mysql\bin\mysql.exe -u root lms_db -e "source D:/LMS/database/migrations/20261110_academic_data_ownership.sql;"
 ```
 
 Verify the import:
 
 ```powershell
-& C:\xampp\mysql\bin\mysql.exe -u root adfc_lms -e "SHOW TABLES; SELECT email, role, status FROM profiles;"
+& C:\xampp\mysql\bin\mysql.exe -u root lms_db -e "SHOW TABLES; SELECT email, role, status FROM profiles;"
 ```
 
 ## 5. Create the Apache deployment junction
@@ -146,4 +146,4 @@ Recommended browser smoke tests:
 & D:\LMS\database\export_database.ps1
 ```
 
-The timestamped dump is written beneath `D:\LMS\database\exports`. That directory is ignored by Git because live exports contain account records and password hashes. Upload the dump only to a restricted-access Google Drive folder and share its printed SHA-256 checksum with authorized recipients.
+The dump is written to `D:\LMS\database\exports\lms_db.sql`. That directory is ignored by Git because live exports contain account records and password hashes. Upload the dump only to a restricted-access Google Drive folder and share its printed SHA-256 checksum with authorized recipients.

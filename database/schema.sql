@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS adfc_lms CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE adfc_lms;
+CREATE DATABASE IF NOT EXISTS lms_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE lms_db;
 
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS quiz_attempts, quiz_answer_keys, quiz_questions, quizzes, submissions, assignments,

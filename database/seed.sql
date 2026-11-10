@@ -1,4 +1,4 @@
-USE adfc_lms;
+USE lms_db;
 
 SET @demo_hash = '$2y$10$6mANmD.gtzn6nODl1DVjyOBatF43dFoh3vyyd1PfxEbexADIlJ4P.';
 INSERT INTO users (id, email, password_hash, requested_role) VALUES

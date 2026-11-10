@@ -1,5 +1,5 @@
 param(
-  [string]$Database = 'adfc_lms',
+  [string]$Database = 'lms_db',
   [string]$User = 'root',
   [string]$Password = '',
   [string]$MySqlBin = 'C:\xampp\mysql\bin'
@@ -13,8 +13,7 @@ if (-not (Test-Path -LiteralPath $dump)) {
 
 $exportDirectory = Join-Path $PSScriptRoot 'exports'
 New-Item -ItemType Directory -Path $exportDirectory -Force | Out-Null
-$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$output = Join-Path $exportDirectory "${Database}_shared_system_${stamp}.sql"
+$output = Join-Path $exportDirectory "${Database}.sql"
 
 $arguments = @(
   "--user=$User",

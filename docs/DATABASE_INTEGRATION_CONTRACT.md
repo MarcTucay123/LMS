@@ -21,7 +21,7 @@ The LMS participates in the shared ADFC system but must not become a second sour
 
 ## Synchronized projection tables
 
-The following tables exist in `adfc_lms` to support LMS joins and access control. They are not independent academic master tables:
+The following tables exist in `lms_db` to support LMS joins and access control. They are not independent academic master tables:
 
 - `profiles`
 - `subjects`
