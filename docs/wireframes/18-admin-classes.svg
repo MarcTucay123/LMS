@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900">
+<title>Class Offerings</title>
+<rect width="100%" height="100%" fill="#f4f4f3"/>
+<style>text{font-family:Arial,sans-serif;fill:#686868}.title{font-size:24px;font-weight:700;fill:#555}.h2{font-size:17px;font-weight:700;fill:#606060}.label{font-size:12px;font-weight:700;fill:#777}.small{font-size:11px;fill:#888}.tiny{font-size:9px;fill:#999}.button{font-size:12px;font-weight:700;fill:#fff}.nav{font-size:12px;fill:#777}.active{font-weight:700;fill:#555}</style>
+<rect x="0" y="0" width="245" height="900" rx="0" fill="#f8f8f7" stroke="#c8c8c8" stroke-width="1"/>
+<rect x="245" y="0" width="1195" height="82" rx="0" fill="#fff" stroke="#c8c8c8" stroke-width="1"/>
+<circle cx="38" cy="40" r="19" fill="#d0d0d0" stroke="#c8c8c8"/>
+<text x="68" y="36" class="h2" text-anchor="start">ADFC OneCampus</text>
+<text x="68" y="54" class="tiny" text-anchor="start">Learning Management System</text>
+<circle cx="38" cy="101" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="105" class="nav" text-anchor="start">Dashboard</text>
+<circle cx="38" cy="146" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="150" class="nav" text-anchor="start">My Classes</text>
+<circle cx="38" cy="191" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="195" class="nav" text-anchor="start">Materials</text>
+<circle cx="38" cy="236" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="240" class="nav" text-anchor="start">Assignments</text>
+<circle cx="38" cy="281" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="285" class="nav" text-anchor="start">Quizzes</text>
+<circle cx="38" cy="326" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="330" class="nav" text-anchor="start">Discussions</text>
+<circle cx="38" cy="371" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="375" class="nav" text-anchor="start">Announcements</text>
+<circle cx="38" cy="416" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="420" class="nav" text-anchor="start">Progress &amp; Reports</text>
+<text x="24" y="505" class="tiny" text-anchor="start">ADMINISTRATION</text>
+<circle cx="38" cy="461" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="465" class="nav" text-anchor="start">Registration Approvals</text>
+<circle cx="38" cy="503" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="507" class="nav" text-anchor="start">User Accounts</text>
+<rect x="18" y="526" width="209" height="38" rx="5" fill="#e5e5e5" stroke="none" stroke-width="1"/>
+<circle cx="38" cy="545" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="549" class="active" text-anchor="start">Class Offerings</text>
+<circle cx="38" cy="587" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="591" class="nav" text-anchor="start">OneCampus Sync</text>
+<rect x="18" y="810" width="209" height="68" rx="8" fill="#f0f0f0" stroke="#d2d2d2" stroke-width="1"/>
+<circle cx="48" cy="844" r="18" fill="#d0d0d0" stroke="#c8c8c8"/>
+<rect x="76" y="828" width="90" height="5" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="76" y="841" width="122" height="5" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="76" y="854" width="62" height="5" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<text x="285" y="35" class="title" text-anchor="start">Class Offerings</text>
+<text x="285" y="58" class="small" text-anchor="start">Manage subjects, instructors, and academic offerings</text>
+<circle cx="1264" cy="39" r="18" fill="#d0d0d0" stroke="#c8c8c8"/>
+<rect x="1292" y="28" width="74" height="5" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="1292" y="42" width="50" height="5" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="1368" y="21" width="54" height="40" rx="5" fill="#fff" stroke="#bcbcbc" stroke-width="1"/>
+<text x="1395.0" y="46" class="label" text-anchor="middle">Exit</text>
+<rect x="280" y="112" width="1125" height="105" rx="10" fill="#fff" stroke="#d0d0d0" stroke-width="1"/>
+<text x="310" y="138" class="tiny" text-anchor="start">ADMINISTRATION</text>
+<text x="310" y="169" class="title" text-anchor="start">Class offerings</text>
+<text x="310" y="194" class="small" text-anchor="start">Create and maintain LMS class offerings.</text>
+<rect x="1228" y="143" width="140" height="40" rx="5" fill="#8b8b8b" stroke="#8b8b8b" stroke-width="1"/>
+<text x="1298.0" y="168" class="button" text-anchor="middle">+ New Class</text>
+<rect x="280" y="250" width="350" height="235" rx="9" fill="#fff" stroke="#ccc" stroke-width="1"/>
+<text x="302" y="282" class="label" text-anchor="start">SUBJ 101</text>
+<rect x="540" y="266" width="68" height="24" rx="12" fill="#eee" stroke="#ccc" stroke-width="1"/>
+<rect x="302" y="302" width="245" height="6" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="302" y="316" width="190" height="6" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<text x="302" y="355" class="tiny" text-anchor="start">Section</text>
+<rect x="302" y="363" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<text x="462" y="355" class="tiny" text-anchor="start">School year</text>
+<rect x="462" y="363" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<text x="302" y="403" class="tiny" text-anchor="start">Semester</text>
+<rect x="302" y="411" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<text x="462" y="403" class="tiny" text-anchor="start">Instructor</text>
+<rect x="462" y="411" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<rect x="302" y="435" width="306" height="40" rx="5" fill="#fff" stroke="#bcbcbc" stroke-width="1"/>
+<text x="455.0" y="460" class="label" text-anchor="middle">Edit Offering</text>
+<rect x="660" y="250" width="350" height="235" rx="9" fill="#fff" stroke="#ccc" stroke-width="1"/>
+<text x="682" y="282" class="label" text-anchor="start">SUBJ 102</text>
+<rect x="920" y="266" width="68" height="24" rx="12" fill="#eee" stroke="#ccc" stroke-width="1"/>
+<rect x="682" y="302" width="245" height="6" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="682" y="316" width="190" height="6" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<text x="682" y="355" class="tiny" text-anchor="start">Section</text>
+<rect x="682" y="363" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<text x="842" y="355" class="tiny" text-anchor="start">School year</text>
+<rect x="842" y="363" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<text x="682" y="403" class="tiny" text-anchor="start">Semester</text>
+<rect x="682" y="411" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<text x="842" y="403" class="tiny" text-anchor="start">Instructor</text>
+<rect x="842" y="411" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<rect x="682" y="435" width="306" height="40" rx="5" fill="#fff" stroke="#bcbcbc" stroke-width="1"/>
+<text x="835.0" y="460" class="label" text-anchor="middle">Edit Offering</text>
+<rect x="1040" y="250" width="350" height="235" rx="9" fill="#fff" stroke="#ccc" stroke-width="1"/>
+<text x="1062" y="282" class="label" text-anchor="start">SUBJ 103</text>
+<rect x="1300" y="266" width="68" height="24" rx="12" fill="#eee" stroke="#ccc" stroke-width="1"/>
+<rect x="1062" y="302" width="245" height="6" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="1062" y="316" width="190" height="6" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<text x="1062" y="355" class="tiny" text-anchor="start">Section</text>
+<rect x="1062" y="363" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<text x="1222" y="355" class="tiny" text-anchor="start">School year</text>
+<rect x="1222" y="363" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<text x="1062" y="403" class="tiny" text-anchor="start">Semester</text>
+<rect x="1062" y="411" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<text x="1222" y="403" class="tiny" text-anchor="start">Instructor</text>
+<rect x="1222" y="411" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<rect x="1062" y="435" width="306" height="40" rx="5" fill="#fff" stroke="#bcbcbc" stroke-width="1"/>
+<text x="1215.0" y="460" class="label" text-anchor="middle">Edit Offering</text>
+<rect x="280" y="520" width="350" height="235" rx="9" fill="#fff" stroke="#ccc" stroke-width="1"/>
+<text x="302" y="552" class="label" text-anchor="start">SUBJ 104</text>
+<rect x="540" y="536" width="68" height="24" rx="12" fill="#eee" stroke="#ccc" stroke-width="1"/>
+<rect x="302" y="572" width="245" height="6" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="302" y="586" width="190" height="6" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<text x="302" y="625" class="tiny" text-anchor="start">Section</text>
+<rect x="302" y="633" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<text x="462" y="625" class="tiny" text-anchor="start">School year</text>
+<rect x="462" y="633" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<text x="302" y="673" class="tiny" text-anchor="start">Semester</text>
+<rect x="302" y="681" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<text x="462" y="673" class="tiny" text-anchor="start">Instructor</text>
+<rect x="462" y="681" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<rect x="302" y="705" width="306" height="40" rx="5" fill="#fff" stroke="#bcbcbc" stroke-width="1"/>
+<text x="455.0" y="730" class="label" text-anchor="middle">Edit Offering</text>
+<rect x="660" y="520" width="350" height="235" rx="9" fill="#fff" stroke="#ccc" stroke-width="1"/>
+<text x="682" y="552" class="label" text-anchor="start">SUBJ 105</text>
+<rect x="920" y="536" width="68" height="24" rx="12" fill="#eee" stroke="#ccc" stroke-width="1"/>
+<rect x="682" y="572" width="245" height="6" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="682" y="586" width="190" height="6" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<text x="682" y="625" class="tiny" text-anchor="start">Section</text>
+<rect x="682" y="633" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<text x="842" y="625" class="tiny" text-anchor="start">School year</text>
+<rect x="842" y="633" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<text x="682" y="673" class="tiny" text-anchor="start">Semester</text>
+<rect x="682" y="681" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<text x="842" y="673" class="tiny" text-anchor="start">Instructor</text>
+<rect x="842" y="681" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<rect x="682" y="705" width="306" height="40" rx="5" fill="#fff" stroke="#bcbcbc" stroke-width="1"/>
+<text x="835.0" y="730" class="label" text-anchor="middle">Edit Offering</text>
+<rect x="1040" y="520" width="350" height="235" rx="9" fill="#fff" stroke="#ccc" stroke-width="1"/>
+<text x="1062" y="552" class="label" text-anchor="start">SUBJ 106</text>
+<rect x="1300" y="536" width="68" height="24" rx="12" fill="#eee" stroke="#ccc" stroke-width="1"/>
+<rect x="1062" y="572" width="245" height="6" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="1062" y="586" width="190" height="6" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<text x="1062" y="625" class="tiny" text-anchor="start">Section</text>
+<rect x="1062" y="633" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<text x="1222" y="625" class="tiny" text-anchor="start">School year</text>
+<rect x="1222" y="633" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<text x="1062" y="673" class="tiny" text-anchor="start">Semester</text>
+<rect x="1062" y="681" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<text x="1222" y="673" class="tiny" text-anchor="start">Instructor</text>
+<rect x="1222" y="681" width="110" height="5" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<rect x="1062" y="705" width="306" height="40" rx="5" fill="#fff" stroke="#bcbcbc" stroke-width="1"/>
+<text x="1215.0" y="730" class="label" text-anchor="middle">Edit Offering</text>
+</svg>

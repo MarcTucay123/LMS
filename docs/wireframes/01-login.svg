@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900" viewBox="0 0 900 900">
+<title>Sign in</title>
+<rect width="100%" height="100%" fill="#f4f4f3"/>
+<style>text{font-family:Arial,sans-serif;fill:#686868}.title{font-size:24px;font-weight:700;fill:#555}.h2{font-size:17px;font-weight:700;fill:#606060}.label{font-size:12px;font-weight:700;fill:#777}.small{font-size:11px;fill:#888}.tiny{font-size:9px;fill:#999}.button{font-size:12px;font-weight:700;fill:#fff}.nav{font-size:12px;fill:#777}.active{font-weight:700;fill:#555}</style>
+<rect x="0" y="0" width="900" height="900" rx="0" fill="#e9e9e7" stroke="none" stroke-width="1"/>
+<circle cx="450" cy="65" r="25" fill="#d0d0d0" stroke="#c8c8c8"/>
+<text x="450" y="108" class="title" text-anchor="middle">ADFC OneCampus</text>
+<text x="450" y="130" class="small" text-anchor="middle">Learning Management System</text>
+<rect x="210" y="155" width="480" height="590" rx="12" fill="#fff" stroke="#c8c8c8" stroke-width="1"/>
+<text x="250" y="203" class="title" text-anchor="start">Sign in</text>
+<text x="250" y="227" class="small" text-anchor="start">Choose your portal and access your LMS account.</text>
+<rect x="250" y="255" width="400" height="46" rx="6" fill="#f3f3f3" stroke="#d0d0d0" stroke-width="1"/>
+<rect x="255" y="260" width="125" height="36" rx="5" fill="#ddd" stroke="#ccc" stroke-width="1"/>
+<text x="317" y="283" class="active" text-anchor="middle">Student</text>
+<rect x="385" y="260" width="125" height="36" rx="5" fill="#fafafa" stroke="#ccc" stroke-width="1"/>
+<text x="447" y="283" class="small" text-anchor="middle">Instructor</text>
+<rect x="515" y="260" width="125" height="36" rx="5" fill="#fafafa" stroke="#ccc" stroke-width="1"/>
+<text x="577" y="283" class="small" text-anchor="middle">Administrator</text>
+<text x="250" y="343" class="h2" text-anchor="start">Student sign in</text>
+<text x="250" y="366" class="small" text-anchor="start">Access classes, activities, and progress.</text>
+<text x="250" y="398" class="label" text-anchor="start">Email address</text>
+<rect x="250" y="405" width="400" height="42" rx="5" fill="#fafafa" stroke="#c9c9c9" stroke-width="1"/>
+<text x="262" y="430" class="small" text-anchor="start">student@example.com</text>
+<text x="250" y="478" class="label" text-anchor="start">Password</text>
+<rect x="250" y="485" width="400" height="42" rx="5" fill="#fafafa" stroke="#c9c9c9" stroke-width="1"/>
+<text x="262" y="510" class="small" text-anchor="start">••••••••</text>
+<text x="650" y="547" class="small" text-anchor="end">Forgot password?</text>
+<rect x="250" y="575" width="400" height="40" rx="5" fill="#8b8b8b" stroke="#8b8b8b" stroke-width="1"/>
+<text x="450.0" y="600" class="button" text-anchor="middle">Sign in as Student</text>
+<line x1="250" y1="640" x2="650" y2="640" stroke="#d1d1d1" stroke-width="1"/>
+<text x="450" y="675" class="small" text-anchor="middle">Don't have an account? Register as Student</text>
+</svg>

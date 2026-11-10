@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="650" viewBox="0 0 900 650">
+<title>Page Not Found</title>
+<rect width="100%" height="100%" fill="#f4f4f3"/>
+<style>text{font-family:Arial,sans-serif;fill:#686868}.title{font-size:24px;font-weight:700;fill:#555}.h2{font-size:17px;font-weight:700;fill:#606060}.label{font-size:12px;font-weight:700;fill:#777}.small{font-size:11px;fill:#888}.tiny{font-size:9px;fill:#999}.button{font-size:12px;font-weight:700;fill:#fff}.nav{font-size:12px;fill:#777}.active{font-weight:700;fill:#555}</style>
+<rect x="0" y="0" width="900" height="650" rx="0" fill="#f3f3f3" stroke="none" stroke-width="1"/>
+<text x="450" y="230" class="title" text-anchor="middle">404</text>
+<text x="450" y="280" class="title" text-anchor="middle">Page not found</text>
+<text x="450" y="315" class="small" text-anchor="middle">The page you requested is unavailable.</text>
+<rect x="335" y="360" width="230" height="40" rx="5" fill="#8b8b8b" stroke="#8b8b8b" stroke-width="1"/>
+<text x="450.0" y="385" class="button" text-anchor="middle">Return to Dashboard</text>
+</svg>

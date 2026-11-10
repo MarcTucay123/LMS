@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components -- provider and paired hook intentionally share this module */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { Session, User } from '@supabase/supabase-js'
+import type { LocalSession as Session, LocalUser as User } from '../lib/supabase'
 import { pendingRoleCheckKey } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import type { Profile } from '../types/database'

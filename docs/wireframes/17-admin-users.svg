@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900">
+<title>User Accounts</title>
+<rect width="100%" height="100%" fill="#f4f4f3"/>
+<style>text{font-family:Arial,sans-serif;fill:#686868}.title{font-size:24px;font-weight:700;fill:#555}.h2{font-size:17px;font-weight:700;fill:#606060}.label{font-size:12px;font-weight:700;fill:#777}.small{font-size:11px;fill:#888}.tiny{font-size:9px;fill:#999}.button{font-size:12px;font-weight:700;fill:#fff}.nav{font-size:12px;fill:#777}.active{font-weight:700;fill:#555}</style>
+<rect x="0" y="0" width="245" height="900" rx="0" fill="#f8f8f7" stroke="#c8c8c8" stroke-width="1"/>
+<rect x="245" y="0" width="1195" height="82" rx="0" fill="#fff" stroke="#c8c8c8" stroke-width="1"/>
+<circle cx="38" cy="40" r="19" fill="#d0d0d0" stroke="#c8c8c8"/>
+<text x="68" y="36" class="h2" text-anchor="start">ADFC OneCampus</text>
+<text x="68" y="54" class="tiny" text-anchor="start">Learning Management System</text>
+<circle cx="38" cy="101" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="105" class="nav" text-anchor="start">Dashboard</text>
+<circle cx="38" cy="146" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="150" class="nav" text-anchor="start">My Classes</text>
+<circle cx="38" cy="191" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="195" class="nav" text-anchor="start">Materials</text>
+<circle cx="38" cy="236" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="240" class="nav" text-anchor="start">Assignments</text>
+<circle cx="38" cy="281" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="285" class="nav" text-anchor="start">Quizzes</text>
+<circle cx="38" cy="326" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="330" class="nav" text-anchor="start">Discussions</text>
+<circle cx="38" cy="371" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="375" class="nav" text-anchor="start">Announcements</text>
+<circle cx="38" cy="416" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="420" class="nav" text-anchor="start">Progress &amp; Reports</text>
+<text x="24" y="505" class="tiny" text-anchor="start">ADMINISTRATION</text>
+<circle cx="38" cy="461" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="465" class="nav" text-anchor="start">Registration Approvals</text>
+<rect x="18" y="484" width="209" height="38" rx="5" fill="#e5e5e5" stroke="none" stroke-width="1"/>
+<circle cx="38" cy="503" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="507" class="active" text-anchor="start">User Accounts</text>
+<circle cx="38" cy="545" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="549" class="nav" text-anchor="start">Class Offerings</text>
+<circle cx="38" cy="587" r="6" fill="#c5c5c5" stroke="none"/>
+<text x="55" y="591" class="nav" text-anchor="start">OneCampus Sync</text>
+<rect x="18" y="810" width="209" height="68" rx="8" fill="#f0f0f0" stroke="#d2d2d2" stroke-width="1"/>
+<circle cx="48" cy="844" r="18" fill="#d0d0d0" stroke="#c8c8c8"/>
+<rect x="76" y="828" width="90" height="5" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="76" y="841" width="122" height="5" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="76" y="854" width="62" height="5" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<text x="285" y="35" class="title" text-anchor="start">User Accounts</text>
+<text x="285" y="58" class="small" text-anchor="start">Manage LMS access, roles, and account status</text>
+<circle cx="1264" cy="39" r="18" fill="#d0d0d0" stroke="#c8c8c8"/>
+<rect x="1292" y="28" width="74" height="5" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="1292" y="42" width="50" height="5" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="1368" y="21" width="54" height="40" rx="5" fill="#fff" stroke="#bcbcbc" stroke-width="1"/>
+<text x="1395.0" y="46" class="label" text-anchor="middle">Exit</text>
+<rect x="280" y="112" width="1125" height="105" rx="10" fill="#fff" stroke="#d0d0d0" stroke-width="1"/>
+<text x="310" y="138" class="tiny" text-anchor="start">ADMINISTRATION</text>
+<text x="310" y="169" class="title" text-anchor="start">User accounts</text>
+<text x="310" y="194" class="small" text-anchor="start">Review synchronized users and manage database-assigned roles.</text>
+<rect x="280" y="245" width="540" height="42" rx="5" fill="#fafafa" stroke="#c9c9c9" stroke-width="1"/>
+<text x="292" y="270" class="small" text-anchor="start">Search name, email, ID, role, or status</text>
+<text x="1405" y="270" class="small" text-anchor="end">24 accounts</text>
+<rect x="280" y="315" width="1125" height="500" rx="8" fill="#fff" stroke="#ccc" stroke-width="1"/>
+<text x="310" y="350" class="label" text-anchor="start">USER</text>
+<text x="720" y="350" class="label" text-anchor="start">SCHOOL ID</text>
+<text x="900" y="350" class="label" text-anchor="start">ROLE</text>
+<text x="1060" y="350" class="label" text-anchor="start">STATUS</text>
+<text x="1240" y="350" class="label" text-anchor="start">ACTION</text>
+<line x1="300" y1="365" x2="1385" y2="365" stroke="#d1d1d1" stroke-width="1"/>
+<circle cx="330" cy="410" r="14" fill="#ddd" stroke="#c8c8c8"/>
+<rect x="355" y="397" width="235" height="4" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="355" y="411" width="170" height="4" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="720" y="402" width="120" height="7" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<rect x="900" y="393" width="125" height="34" rx="4" fill="#fafafa" stroke="#ccc" stroke-width="1"/>
+<text x="915" y="414" class="small" text-anchor="start">student  ▼</text>
+<rect x="1060" y="393" width="125" height="34" rx="4" fill="#fafafa" stroke="#ccc" stroke-width="1"/>
+<text x="1075" y="414" class="small" text-anchor="start">active  ▼</text>
+<rect x="1240" y="390" width="95" height="40" rx="5" fill="#fff" stroke="#bcbcbc" stroke-width="1"/>
+<text x="1287.5" y="415" class="label" text-anchor="middle">Save</text>
+<line x1="300" y1="439" x2="1385" y2="439" stroke="#d1d1d1" stroke-width="1"/>
+<circle cx="330" cy="468" r="14" fill="#ddd" stroke="#c8c8c8"/>
+<rect x="355" y="455" width="235" height="4" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="355" y="469" width="170" height="4" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="720" y="460" width="120" height="7" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<rect x="900" y="451" width="125" height="34" rx="4" fill="#fafafa" stroke="#ccc" stroke-width="1"/>
+<text x="915" y="472" class="small" text-anchor="start">student  ▼</text>
+<rect x="1060" y="451" width="125" height="34" rx="4" fill="#fafafa" stroke="#ccc" stroke-width="1"/>
+<text x="1075" y="472" class="small" text-anchor="start">active  ▼</text>
+<rect x="1240" y="448" width="95" height="40" rx="5" fill="#fff" stroke="#bcbcbc" stroke-width="1"/>
+<text x="1287.5" y="473" class="label" text-anchor="middle">Save</text>
+<line x1="300" y1="497" x2="1385" y2="497" stroke="#d1d1d1" stroke-width="1"/>
+<circle cx="330" cy="526" r="14" fill="#ddd" stroke="#c8c8c8"/>
+<rect x="355" y="513" width="235" height="4" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="355" y="527" width="170" height="4" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="720" y="518" width="120" height="7" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<rect x="900" y="509" width="125" height="34" rx="4" fill="#fafafa" stroke="#ccc" stroke-width="1"/>
+<text x="915" y="530" class="small" text-anchor="start">student  ▼</text>
+<rect x="1060" y="509" width="125" height="34" rx="4" fill="#fafafa" stroke="#ccc" stroke-width="1"/>
+<text x="1075" y="530" class="small" text-anchor="start">active  ▼</text>
+<rect x="1240" y="506" width="95" height="40" rx="5" fill="#fff" stroke="#bcbcbc" stroke-width="1"/>
+<text x="1287.5" y="531" class="label" text-anchor="middle">Save</text>
+<line x1="300" y1="555" x2="1385" y2="555" stroke="#d1d1d1" stroke-width="1"/>
+<circle cx="330" cy="584" r="14" fill="#ddd" stroke="#c8c8c8"/>
+<rect x="355" y="571" width="235" height="4" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="355" y="585" width="170" height="4" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="720" y="576" width="120" height="7" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<rect x="900" y="567" width="125" height="34" rx="4" fill="#fafafa" stroke="#ccc" stroke-width="1"/>
+<text x="915" y="588" class="small" text-anchor="start">student  ▼</text>
+<rect x="1060" y="567" width="125" height="34" rx="4" fill="#fafafa" stroke="#ccc" stroke-width="1"/>
+<text x="1075" y="588" class="small" text-anchor="start">active  ▼</text>
+<rect x="1240" y="564" width="95" height="40" rx="5" fill="#fff" stroke="#bcbcbc" stroke-width="1"/>
+<text x="1287.5" y="589" class="label" text-anchor="middle">Save</text>
+<line x1="300" y1="613" x2="1385" y2="613" stroke="#d1d1d1" stroke-width="1"/>
+<circle cx="330" cy="642" r="14" fill="#ddd" stroke="#c8c8c8"/>
+<rect x="355" y="629" width="235" height="4" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="355" y="643" width="170" height="4" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="720" y="634" width="120" height="7" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<rect x="900" y="625" width="125" height="34" rx="4" fill="#fafafa" stroke="#ccc" stroke-width="1"/>
+<text x="915" y="646" class="small" text-anchor="start">student  ▼</text>
+<rect x="1060" y="625" width="125" height="34" rx="4" fill="#fafafa" stroke="#ccc" stroke-width="1"/>
+<text x="1075" y="646" class="small" text-anchor="start">active  ▼</text>
+<rect x="1240" y="622" width="95" height="40" rx="5" fill="#fff" stroke="#bcbcbc" stroke-width="1"/>
+<text x="1287.5" y="647" class="label" text-anchor="middle">Save</text>
+<line x1="300" y1="671" x2="1385" y2="671" stroke="#d1d1d1" stroke-width="1"/>
+<circle cx="330" cy="700" r="14" fill="#ddd" stroke="#c8c8c8"/>
+<rect x="355" y="687" width="235" height="4" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="355" y="701" width="170" height="4" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="720" y="692" width="120" height="7" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<rect x="900" y="683" width="125" height="34" rx="4" fill="#fafafa" stroke="#ccc" stroke-width="1"/>
+<text x="915" y="704" class="small" text-anchor="start">student  ▼</text>
+<rect x="1060" y="683" width="125" height="34" rx="4" fill="#fafafa" stroke="#ccc" stroke-width="1"/>
+<text x="1075" y="704" class="small" text-anchor="start">active  ▼</text>
+<rect x="1240" y="680" width="95" height="40" rx="5" fill="#fff" stroke="#bcbcbc" stroke-width="1"/>
+<text x="1287.5" y="705" class="label" text-anchor="middle">Save</text>
+<line x1="300" y1="729" x2="1385" y2="729" stroke="#d1d1d1" stroke-width="1"/>
+<circle cx="330" cy="758" r="14" fill="#ddd" stroke="#c8c8c8"/>
+<rect x="355" y="745" width="235" height="4" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="355" y="759" width="170" height="4" rx="2" fill="#c8c8c8" stroke="none" stroke-width="1"/>
+<rect x="720" y="750" width="120" height="7" rx="2" fill="#ccc" stroke="none" stroke-width="1"/>
+<rect x="900" y="741" width="125" height="34" rx="4" fill="#fafafa" stroke="#ccc" stroke-width="1"/>
+<text x="915" y="762" class="small" text-anchor="start">student  ▼</text>
+<rect x="1060" y="741" width="125" height="34" rx="4" fill="#fafafa" stroke="#ccc" stroke-width="1"/>
+<text x="1075" y="762" class="small" text-anchor="start">active  ▼</text>
+<rect x="1240" y="738" width="95" height="40" rx="5" fill="#fff" stroke="#bcbcbc" stroke-width="1"/>
+<text x="1287.5" y="763" class="label" text-anchor="middle">Save</text>
+<line x1="300" y1="787" x2="1385" y2="787" stroke="#d1d1d1" stroke-width="1"/>
+</svg>

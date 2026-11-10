@@ -12,15 +12,17 @@ export function ResetPasswordPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const portal = getPortal(searchParams.get('portal'))
+  const hasResetToken = Boolean(searchParams.get('token'))
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [checkingSession, setCheckingSession] = useState(true)
-  const [hasRecoverySession, setHasRecoverySession] = useState(false)
+  const [checkingSession, setCheckingSession] = useState(!hasResetToken)
+  const [hasRecoverySession, setHasRecoverySession] = useState(hasResetToken)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (hasResetToken) return
     let active = true
     const checkSession = async () => {
       const { data, error: sessionError } = await supabase.auth.getSession()
@@ -38,7 +40,7 @@ export function ResetPasswordPage() {
       active = false
       listener.subscription.unsubscribe()
     }
-  }, [])
+  }, [hasResetToken])
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()

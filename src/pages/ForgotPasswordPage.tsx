@@ -15,6 +15,7 @@ export function ForgotPasswordPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sent, setSent] = useState(false)
+  const [resetUrl, setResetUrl] = useState<string | null>(null)
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -28,12 +29,13 @@ export function ForgotPasswordPage() {
     setSubmitting(true)
     const redirectTo = new URL('/reset-password', window.location.origin)
     redirectTo.searchParams.set('portal', portal)
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, { redirectTo: redirectTo.toString() })
+    const { data, error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, { redirectTo: redirectTo.toString() })
     setSubmitting(false)
     if (resetError) {
       setError(resetError.message)
       return
     }
+    setResetUrl(data?.reset_url ?? null)
     setSent(true)
   }
 
@@ -46,7 +48,7 @@ export function ForgotPasswordPage() {
       </div>
 
       {sent ? (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><p className="font-bold">Check your email</p><p className="mt-1">If an account exists for that address, a password-reset link has been sent. Check your spam folder if it does not arrive.</p></div>
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><p className="font-bold">Reset request created</p><p className="mt-1">If an account exists for that address, a password-reset link has been created.</p>{resetUrl && <a className="mt-3 inline-flex font-bold text-brand-700 hover:text-brand-800" href={resetUrl}>Open local reset link</a>}<p className="mt-2 text-xs">On XAMPP, the link is also written to the Apache PHP error log so SMTP is not required for local development.</p></div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           {error && <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{error}</div>}
