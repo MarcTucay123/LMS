@@ -55,6 +55,12 @@ Start MySQL/MariaDB in the XAMPP Control Panel, then import the schema and seed:
 
 `database/schema.sql` drops and recreates the LMS tables. Do not run it against a database containing data that must be retained.
 
+For an existing database, apply the non-destructive ownership migration instead:
+
+```powershell
+& C:\xampp\mysql\bin\mysql.exe -u root adfc_lms -e "source D:/LMS/database/migrations/20261110_academic_data_ownership.sql;"
+```
+
 Verify the import:
 
 ```powershell
@@ -133,3 +139,11 @@ Recommended browser smoke tests:
 - Restrict filesystem permissions on `storage/uploads` and local configuration.
 - Set a real OneCampus API endpoint/key or disable synchronization if it is unavailable.
 - Back up MariaDB and private uploads together.
+
+## 11. Create a database handoff export
+
+```powershell
+& D:\LMS\database\export_database.ps1
+```
+
+The timestamped dump is written beneath `D:\LMS\database\exports`. That directory is ignored by Git because live exports contain account records and password hashes. Upload the dump only to a restricted-access Google Drive folder and share its printed SHA-256 checksum with authorized recipients.

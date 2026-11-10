@@ -21,6 +21,8 @@ CREATE TABLE users (
 CREATE TABLE profiles (
   id CHAR(36) PRIMARY KEY,
   onecampus_user_id VARCHAR(100) NULL UNIQUE,
+  source_system VARCHAR(80) NOT NULL DEFAULT 'lms_registration' COMMENT 'Authoritative identity source; external records are synchronized and read-only in LMS',
+  synced_at DATETIME NULL,
   school_id VARCHAR(100) NOT NULL UNIQUE,
   email VARCHAR(190) NOT NULL UNIQUE,
   full_name VARCHAR(255) NOT NULL,
@@ -44,6 +46,8 @@ CREATE TABLE profiles (
 CREATE TABLE subjects (
   id CHAR(36) PRIMARY KEY,
   onecampus_subject_id VARCHAR(100) NULL UNIQUE,
+  source_system VARCHAR(80) NOT NULL DEFAULT 'course_catalog' COMMENT 'Owned by OneCampus/course catalog; LMS stores a synchronized projection',
+  synced_at DATETIME NULL,
   code VARCHAR(40) NOT NULL UNIQUE,
   title VARCHAR(255) NOT NULL,
   description TEXT NULL,
@@ -54,6 +58,8 @@ CREATE TABLE subjects (
 CREATE TABLE classes (
   id CHAR(36) PRIMARY KEY,
   onecampus_class_id VARCHAR(100) NULL UNIQUE,
+  source_system VARCHAR(80) NOT NULL DEFAULT 'class_scheduling' COMMENT 'Owned by OneCampus/Class Scheduling; not editable in LMS',
+  synced_at DATETIME NULL,
   subject_id CHAR(36) NOT NULL,
   instructor_id CHAR(36) NOT NULL,
   section VARCHAR(80) NOT NULL,
@@ -70,6 +76,8 @@ CREATE TABLE classes (
 CREATE TABLE enrollments (
   id CHAR(36) PRIMARY KEY,
   onecampus_enrollment_id VARCHAR(100) NULL UNIQUE,
+  source_system VARCHAR(80) NOT NULL DEFAULT 'enrollment_management' COMMENT 'Owned by OneCampus/Enrollment Management; not editable in LMS',
+  synced_at DATETIME NULL,
   class_id CHAR(36) NOT NULL,
   student_id CHAR(36) NOT NULL,
   status ENUM('enrolled','dropped','completed') NOT NULL DEFAULT 'enrolled',

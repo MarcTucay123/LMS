@@ -10,8 +10,11 @@ Web-based Learning Management System for Asian Development Foundation College.
 - PHP session authentication and server-side role/class authorization
 - Private uploads stored in `D:\LMS\storage\uploads` and streamed through authorized API endpoints
 - OneCampus synchronization using `mock-onecampus/fixtures.json` by default, with optional remote API configuration
+- Read-only synchronized projections for external identity, course catalog, class scheduling, and enrollment data
 
 The browser compatibility client in `src/lib/supabase.ts` retains the former Supabase-style frontend calls, but all runtime requests now go to `public/api/index.php`.
+
+Academic data ownership and database handoff rules are documented in `docs/DATABASE_INTEGRATION_CONTRACT.md`.
 
 ## Quick start
 

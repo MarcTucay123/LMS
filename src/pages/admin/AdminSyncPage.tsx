@@ -53,8 +53,8 @@ export function AdminSyncPage() {
 
   return (
     <div className="mx-auto max-w-[1500px]">
-      <AdminPageHeader icon={DatabaseZap} eyebrow="OneCampus integration" title="Synchronization" description="Import users, subjects, classes, and enrollments from the OneCampus API or bundled mock fixtures." action={<button className="button-primary" onClick={() => void runSync()} disabled={syncing}><RefreshCw className={syncing ? 'animate-spin' : ''} size={18} /> {syncing ? 'Synchronizing…' : 'Sync now'}</button>} />
-      <div className="mb-6 rounded-2xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-900"><p className="font-bold">Mock fallback is enabled</p><p className="mt-1 text-blue-700">When the Edge secret <code>ONECAMPUS_API_URL</code> is empty, synchronization imports the repository fixtures automatically.</p></div>
+      <AdminPageHeader icon={DatabaseZap} eyebrow="OneCampus integration" title="Synchronization" description="Import read-only identity, course catalog, class scheduling, and enrollment projections from the systems that own those records." action={<button className="button-primary" onClick={() => void runSync()} disabled={syncing}><RefreshCw className={syncing ? 'animate-spin' : ''} size={18} /> {syncing ? 'Synchronizing…' : 'Sync now'}</button>} />
+      <div className="mb-6 rounded-2xl border-2 border-blue-400 bg-blue-50 p-5 text-sm text-blue-900"><p className="font-bold">Synchronization is the only academic master-data write path</p><p className="mt-1 text-blue-700">When <code>ONECAMPUS_API_URL</code> is empty, the PHP API imports the repository fixtures. Configure the real shared-system endpoint before production use.</p></div>
       {message && <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">{message}</div>}
       {loading && <LoadingState label="Loading synchronization history…" />}
       {error && <ErrorState message={error} onRetry={() => void load()} />}

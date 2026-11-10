@@ -14,6 +14,8 @@ export interface Database {
         Row: {
           id: string
           onecampus_user_id: string | null
+          source_system: string
+          synced_at: string | null
           school_id: string
           email: string
           full_name: string
@@ -35,6 +37,8 @@ export interface Database {
         Insert: {
           id: string
           onecampus_user_id?: string | null
+          source_system?: string
+          synced_at?: string | null
           school_id: string
           email: string
           full_name: string
@@ -60,6 +64,8 @@ export interface Database {
         Row: {
           id: string
           onecampus_subject_id: string | null
+          source_system: string
+          synced_at: string | null
           code: string
           title: string
           description: string | null
@@ -69,6 +75,8 @@ export interface Database {
         Insert: {
           id?: string
           onecampus_subject_id?: string | null
+          source_system?: string
+          synced_at?: string | null
           code: string
           title: string
           description?: string | null
@@ -82,6 +90,8 @@ export interface Database {
         Row: {
           id: string
           onecampus_class_id: string | null
+          source_system: string
+          synced_at: string | null
           subject_id: string
           instructor_id: string
           section: string
@@ -94,6 +104,8 @@ export interface Database {
         Insert: {
           id?: string
           onecampus_class_id?: string | null
+          source_system?: string
+          synced_at?: string | null
           subject_id: string
           instructor_id: string
           section: string
@@ -110,6 +122,8 @@ export interface Database {
         Row: {
           id: string
           onecampus_enrollment_id: string | null
+          source_system: string
+          synced_at: string | null
           class_id: string
           student_id: string
           status: EnrollmentStatus
@@ -119,6 +133,8 @@ export interface Database {
         Insert: {
           id?: string
           onecampus_enrollment_id?: string | null
+          source_system?: string
+          synced_at?: string | null
           class_id: string
           student_id: string
           status?: EnrollmentStatus
@@ -304,7 +320,7 @@ export interface Database {
         Returns: Database['public']['Tables']['profiles']['Row']
       }
       admin_approve_registration: {
-        Args: { target_application_id: string; assigned_class_ids?: string[] }
+        Args: { target_application_id: string }
         Returns: Database['public']['Tables']['profiles']['Row']
       }
       admin_reject_registration: {

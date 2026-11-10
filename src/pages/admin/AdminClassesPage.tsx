@@ -1,108 +1,114 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { BookCopy, Pencil, Plus, X } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { BookCopy, DatabaseZap, LockKeyhole } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { AdminPageHeader } from '../../components/AdminPageHeader'
 import { EmptyState, ErrorState, LoadingState } from '../../components/ScreenState'
 import { supabase } from '../../lib/supabase'
 
-interface Option { id: string; label: string }
 interface ManagedClass {
   id: string
-  subject_id: string
-  instructor_id: string
+  onecampus_class_id: string | null
+  source_system: string
+  synced_at: string | null
   section: string
   school_year: string
   semester: string
   status: string
-  subject: { code: string; title: string } | null
-  instructor: { full_name: string } | null
+  subject: { code: string; title: string } | { code: string; title: string }[] | null
+  instructor: { full_name: string } | { full_name: string }[] | null
 }
-
-interface ClassForm { subjectId: string; instructorId: string; section: string; schoolYear: string; semester: string; status: 'active' | 'archived' }
-const emptyForm: ClassForm = { subjectId: '', instructorId: '', section: '', schoolYear: '', semester: 'First Semester', status: 'active' }
 
 export function AdminClassesPage() {
   const [classes, setClasses] = useState<ManagedClass[]>([])
-  const [subjects, setSubjects] = useState<Option[]>([])
-  const [instructors, setInstructors] = useState<Option[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
-  const [formOpen, setFormOpen] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm] = useState<ClassForm>(emptyForm)
-  const [saving, setSaving] = useState(false)
 
   const load = useCallback(async () => {
-    setLoading(true); setError(null)
-    const [classResult, subjectResult, instructorResult] = await Promise.all([
-      supabase.from('classes').select('id, subject_id, instructor_id, section, school_year, semester, status, subject:subjects(code, title), instructor:profiles!classes_instructor_id_fkey(full_name)').order('created_at', { ascending: false }),
-      supabase.from('subjects').select('id, code, title').order('code'),
-      supabase.from('profiles').select('id, full_name, status').eq('role', 'instructor').order('full_name'),
-    ])
-    const firstError = classResult.error ?? subjectResult.error ?? instructorResult.error
-    if (firstError) setError(firstError.message)
-    else {
-      setClasses((classResult.data ?? []).map((row) => normalizeClass(row as unknown as ManagedClass)))
-      setSubjects((subjectResult.data ?? []).map((item) => ({ id: item.id, label: `${item.code} — ${item.title}` })))
-      setInstructors((instructorResult.data ?? []).map((item) => ({ id: item.id, label: `${item.full_name} (${item.status})` })))
-    }
+    setLoading(true)
+    setError(null)
+    const { data, error: queryError } = await supabase
+      .from('classes')
+      .select('id, onecampus_class_id, source_system, synced_at, section, school_year, semester, status, subject:subjects(code, title), instructor:profiles!classes_instructor_id_fkey(full_name)')
+      .order('created_at', { ascending: false })
+    if (queryError) setError(queryError.message)
+    else setClasses((data ?? []) as unknown as ManagedClass[])
     setLoading(false)
   }, [])
 
   useEffect(() => {
     let active = true
-    const requests = [
-      supabase.from('classes').select('id, subject_id, instructor_id, section, school_year, semester, status, subject:subjects(code, title), instructor:profiles!classes_instructor_id_fkey(full_name)').order('created_at', { ascending: false }),
-      supabase.from('subjects').select('id, code, title').order('code'),
-      supabase.from('profiles').select('id, full_name, status').eq('role', 'instructor').order('full_name'),
-    ] as const
-    void Promise.all(requests).then(([classResult, subjectResult, instructorResult]) => {
-      if (!active) return
-      const firstError = classResult.error ?? subjectResult.error ?? instructorResult.error
-      if (firstError) setError(firstError.message)
-      else {
-        setClasses((classResult.data ?? []).map((row) => normalizeClass(row as unknown as ManagedClass)))
-        setSubjects((subjectResult.data ?? []).map((item) => ({ id: item.id, label: `${item.code} — ${item.title}` })))
-        setInstructors((instructorResult.data ?? []).map((item) => ({ id: item.id, label: `${item.full_name} (${item.status})` })))
-      }
-      setLoading(false)
-    })
+    void supabase
+      .from('classes')
+      .select('id, onecampus_class_id, source_system, synced_at, section, school_year, semester, status, subject:subjects(code, title), instructor:profiles!classes_instructor_id_fkey(full_name)')
+      .order('created_at', { ascending: false })
+      .then(({ data, error: queryError }) => {
+        if (!active) return
+        if (queryError) setError(queryError.message)
+        else setClasses((data ?? []) as unknown as ManagedClass[])
+        setLoading(false)
+      })
     return () => { active = false }
   }, [])
 
-  const openCreate = () => { setEditingId(null); setForm(emptyForm); setFormOpen(true); setError(null); setMessage(null) }
-  const openEdit = (item: ManagedClass) => {
-    setEditingId(item.id)
-    setForm({ subjectId: item.subject_id, instructorId: item.instructor_id, section: item.section, schoolYear: item.school_year, semester: item.semester, status: item.status as 'active' | 'archived' })
-    setFormOpen(true); setError(null); setMessage(null)
-  }
-
-  const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault(); setError(null); setMessage(null)
-    if (!form.subjectId || !form.instructorId || !form.section.trim() || !form.schoolYear.trim() || !form.semester.trim()) return setError('Complete all class offering fields.')
-    setSaving(true)
-    const values = { subject_id: form.subjectId, instructor_id: form.instructorId, section: form.section.trim(), school_year: form.schoolYear.trim(), semester: form.semester.trim(), status: form.status }
-    const result = editingId ? await supabase.from('classes').update(values).eq('id', editingId) : await supabase.from('classes').insert(values)
-    setSaving(false)
-    if (result.error) return setError(result.error.message)
-    setFormOpen(false); setMessage(editingId ? 'Class offering updated.' : 'Class offering created.')
-    await load()
-  }
-
   return (
     <div className="mx-auto max-w-[1500px]">
-      <AdminPageHeader icon={BookCopy} eyebrow="Administration" title="Class offerings" description="Create, assign, update, activate, or archive LMS class offerings." action={<button className="button-primary" onClick={openCreate}><Plus size={18} /> New class</button>} />
-      {message && <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">{message}</div>}
-      {error && <div className="mb-4"><ErrorState message={error} onRetry={() => void load()} /></div>}
-      {loading && <LoadingState label="Loading class offerings…" />}
-      {!loading && !error && classes.length === 0 && <EmptyState title="No class offerings" description="Create a class or run OneCampus synchronization." />}
-      {!loading && classes.length > 0 && <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">{classes.map((item) => <article className="card p-4 sm:p-5" key={item.id}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-extrabold uppercase tracking-wide text-brand-700">{item.subject?.code}</p><h3 className="mt-1 break-words font-extrabold text-slate-900">{item.subject?.title}</h3></div><span className={`status-pill shrink-0 ${item.status === 'active' ? 'status-pill-active' : 'status-pill-inactive'}`}>{item.status}</span></div><dl className="mt-5 grid grid-cols-1 gap-3 text-sm min-[400px]:grid-cols-2"><div><dt className="text-xs text-slate-400">Section</dt><dd className="font-semibold">{item.section}</dd></div><div><dt className="text-xs text-slate-400">School year</dt><dd className="font-semibold">{item.school_year}</dd></div><div><dt className="text-xs text-slate-400">Semester</dt><dd className="font-semibold">{item.semester}</dd></div><div className="min-w-0"><dt className="text-xs text-slate-400">Instructor</dt><dd className="break-words font-semibold">{item.instructor?.full_name}</dd></div></dl><button className="button-secondary mt-5 w-full" onClick={() => openEdit(item)}><Pencil size={16} /> Edit offering</button></article>)}</div>}
+      <AdminPageHeader
+        icon={BookCopy}
+        eyebrow="Academic integration"
+        title="Synchronized class offerings"
+        description="Class offerings, subjects, instructor assignments, sections, and academic terms are owned by OneCampus and Class Scheduling. The LMS displays a read-only synchronized copy."
+        action={<Link className="button-primary" to="/admin/sync"><DatabaseZap size={18} /> Synchronization</Link>}
+      />
 
-      {formOpen && <div className="modal-backdrop" role="presentation"><div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="class-form-title"><div className="flex items-start justify-between gap-4"><div><h3 id="class-form-title" className="text-xl font-black text-slate-900">{editingId ? 'Edit class offering' : 'New class offering'}</h3><p className="mt-1 text-sm text-slate-500">Assign a subject and an instructor profile.</p></div><button className="icon-button" onClick={() => setFormOpen(false)} aria-label="Close"><X size={19} /></button></div><form className="mt-6 space-y-4" onSubmit={handleSubmit}><label className="field-label">Subject<select className="form-select" value={form.subjectId} onChange={(event) => setForm({ ...form, subjectId: event.target.value })}><option value="">Select subject</option>{subjects.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label><label className="field-label">Instructor<select className="form-select" value={form.instructorId} onChange={(event) => setForm({ ...form, instructorId: event.target.value })}><option value="">Select instructor</option>{instructors.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label><div className="grid gap-4 sm:grid-cols-2"><label className="field-label">Section<input className="form-input" value={form.section} onChange={(event) => setForm({ ...form, section: event.target.value })} placeholder="BSIT-2A" /></label><label className="field-label">School year<input className="form-input" value={form.schoolYear} onChange={(event) => setForm({ ...form, schoolYear: event.target.value })} placeholder="2026-2027" /></label></div><div className="grid gap-4 sm:grid-cols-2"><label className="field-label">Semester<input className="form-input" value={form.semester} onChange={(event) => setForm({ ...form, semester: event.target.value })} /></label><label className="field-label">Status<select className="form-select" value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as 'active' | 'archived' })}><option value="active">Active</option><option value="archived">Archived</option></select></label></div><div className="flex justify-end gap-3 pt-2"><button type="button" className="button-secondary" onClick={() => setFormOpen(false)}>Cancel</button><button className="button-primary" disabled={saving}>{saving ? 'Saving…' : 'Save class'}</button></div></form></div></div>}
+      <div className="mb-6 flex items-start gap-3 rounded-2xl border-2 border-blue-400 bg-blue-50 p-4 text-sm text-blue-950 shadow-sm shadow-blue-900/10 sm:p-5">
+        <LockKeyhole className="mt-0.5 shrink-0 text-brand-700" size={20} />
+        <div>
+          <p className="font-extrabold">Academic master data is read-only in the LMS</p>
+          <p className="mt-1 text-blue-800">Create or change subjects, instructors, class offerings, sections, and schedules in their owning subsystem, then run synchronization. This prevents duplicate or conflicting records.</p>
+        </div>
+      </div>
+
+      {loading && <LoadingState label="Loading synchronized class offerings…" />}
+      {error && <ErrorState message={error} onRetry={() => void load()} />}
+      {!loading && !error && classes.length === 0 && <EmptyState title="No synchronized class offerings" description="Run OneCampus synchronization after the Enrollment and Class Scheduling records are available." />}
+      {!loading && classes.length > 0 && (
+        <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+          {classes.map((item) => {
+            const subject = Array.isArray(item.subject) ? item.subject[0] ?? null : item.subject
+            const instructor = Array.isArray(item.instructor) ? item.instructor[0] ?? null : item.instructor
+            return (
+              <article className="card p-4 sm:p-5" key={item.id}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-extrabold uppercase tracking-wide text-brand-700">{subject?.code ?? 'Subject'}</p>
+                    <h3 className="mt-1 break-words font-extrabold text-slate-900">{subject?.title ?? 'Unavailable subject'}</h3>
+                  </div>
+                  <span className={`status-pill shrink-0 ${item.status === 'active' ? 'status-pill-active' : 'status-pill-inactive'}`}>{item.status}</span>
+                </div>
+                <dl className="mt-5 grid grid-cols-1 gap-3 text-sm min-[400px]:grid-cols-2">
+                  <DataItem label="Section" value={item.section} />
+                  <DataItem label="School year" value={item.school_year} />
+                  <DataItem label="Semester" value={item.semester} />
+                  <DataItem label="Instructor" value={instructor?.full_name ?? 'Unassigned'} />
+                </dl>
+                <div className="mt-5 rounded-xl bg-blue-50 p-3 text-xs text-blue-800">
+                  <p className="font-extrabold uppercase tracking-wide">Source: {formatSource(item.source_system)}</p>
+                  <p className="mt-1 break-all">External ID: {item.onecampus_class_id ?? 'Not linked'}</p>
+                  <p className="mt-1">Last synchronized: {item.synced_at ? new Date(item.synced_at).toLocaleString() : 'Not recorded'}</p>
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
 
-function normalizeClass(item: ManagedClass): ManagedClass {
-  return { ...item, subject: Array.isArray(item.subject) ? item.subject[0] ?? null : item.subject, instructor: Array.isArray(item.instructor) ? item.instructor[0] ?? null : item.instructor }
+function DataItem({ label, value }: { label: string; value: string }) {
+  return <div className="min-w-0"><dt className="text-xs text-slate-400">{label}</dt><dd className="break-words font-semibold text-slate-800">{value}</dd></div>
+}
+
+function formatSource(source: string) {
+  return source.replaceAll('_', ' ')
 }

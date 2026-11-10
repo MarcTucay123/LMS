@@ -328,12 +328,10 @@ function query_insert(string $table, array $values): array
         'quizzes' => ['class_id','title','description','opens_at','closes_at','time_limit_minutes','status'],
         'quiz_questions' => ['quiz_id','prompt','question_type','options','points','position'],
         'quiz_answer_keys' => ['question_id','correct_answer','case_sensitive'],
-        'classes' => ['subject_id','instructor_id','section','school_year','semester','status'],
     ];
     if (!isset($allowed[$table])) fail('Insert is not allowed for this table.', 403);
 
-    if ($table === 'classes') require_admin();
-    elseif (in_array($table, ['discussion_topics','discussion_posts'], true)) {
+    if (in_array($table, ['discussion_topics','discussion_posts'], true)) {
         $classId = $table === 'discussion_topics' ? (string)($values['class_id'] ?? '') : class_id_for_topic((string)($values['topic_id'] ?? ''));
         if ($user['role'] === 'admin') fail('Administrators have read-only discussion access.', 403);
         if ($classId === '' || !class_access($classId, $user)) fail('Access denied.', 403);
@@ -396,24 +394,18 @@ function validate_insert_row(string $table, array $row): void
         'discussion_topics' => ['class_id','title','body'], 'discussion_posts' => ['topic_id','body'],
         'assignments' => ['class_id','title','instructions','points','status'], 'quizzes' => ['class_id','title','status'],
         'quiz_questions' => ['quiz_id','prompt','question_type','options','points','position'],
-        'quiz_answer_keys' => ['question_id','correct_answer'], 'classes' => ['subject_id','instructor_id','section','school_year','semester','status'],
+        'quiz_answer_keys' => ['question_id','correct_answer'],
     ];
     foreach ($required[$table] ?? [] as $column) if (!isset($row[$column]) || $row[$column] === '') fail('Complete all required fields.');
     if ($table === 'materials' && empty($row['file_path']) && empty($row['external_url'])) fail('A file or external URL is required.');
-    if ($table === 'classes') {
-        $stmt = db()->prepare("SELECT 1 FROM profiles WHERE id=? AND role='instructor'"); $stmt->execute([$row['instructor_id']]);
-        if (!$stmt->fetchColumn()) fail('Class offerings must be assigned to an instructor profile.');
-    }
 }
 
 function query_update(string $table, array $values, array $filters): array
 {
     $id = (string)(filter_value($filters, 'id') ?? ''); if ($id === '') fail('An ID filter is required.');
-    $allowed = ['classes' => ['subject_id','instructor_id','section','school_year','semester','status'], 'quizzes' => ['status']];
+    $allowed = ['quizzes' => ['status']];
     if (!isset($allowed[$table])) fail('Update is not allowed for this table.', 403);
-    if ($table === 'classes') require_admin(); else {
-        $classId = class_id_for_record($table, $id); if (!$classId) fail('Record not found.', 404); require_class_manager($classId);
-    }
+    $classId = class_id_for_record($table, $id); if (!$classId) fail('Record not found.', 404); require_class_manager($classId);
     $sets = []; $params = [];
     foreach ($allowed[$table] as $column) if (array_key_exists($column, $values)) { $sets[] = "`$column`=?"; $params[] = normalize_write_value($column, $values[$column]); }
     if (!$sets) fail('No supported values were supplied.');
@@ -465,7 +457,7 @@ function rpc_admin_update_user(array $args): array
 
 function rpc_approve_registration(array $args): array
 {
-    $admin = require_admin(); $id = (string)($args['target_application_id'] ?? ''); $assigned = is_array($args['assigned_class_ids'] ?? null) ? $args['assigned_class_ids'] : [];
+    $admin = require_admin(); $id = (string)($args['target_application_id'] ?? '');
     $pdo = db(); $pdo->beginTransaction();
     try {
         $stmt = $pdo->prepare("SELECT * FROM registration_applications WHERE id=? AND status='pending' FOR UPDATE"); $stmt->execute([$id]); $app = $stmt->fetch();
@@ -473,17 +465,8 @@ function rpc_approve_registration(array $args): array
         $count = (int)$pdo->query('SELECT COUNT(*) FROM profiles')->fetchColumn() + 1;
         $code = ['student'=>'STU','instructor'=>'FAC','admin'=>'ADMIN'][$app['requested_role']];
         $schoolId = $app['requested_role'] === 'student' && $app['student_id_number'] ? $app['student_id_number'] : sprintf('ADFC-%s-%06d',$code,$count);
-        $oneCampus = sprintf('OC-%s-%06d',$code,$count);
-        $insert = $pdo->prepare('INSERT INTO profiles (id,onecampus_user_id,school_id,email,full_name,first_name,middle_name,last_name,suffix,class_code,program,year_level,block,academic_year,semester,role,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,\'active\')');
-        $insert->execute([$app['auth_user_id'],$oneCampus,$schoolId,$app['email'],$app['full_name'],$app['first_name'],$app['middle_name'],$app['last_name'],$app['suffix'],$app['class_code'],$app['program'],$app['year_level'],$app['block'],$app['academic_year'],$app['semester'],$app['requested_role']]);
-        if ($app['requested_role'] === 'student') {
-            if ($assigned) fail('Instructor class assignments cannot be supplied for a student registration.');
-            $classStmt = $pdo->prepare('SELECT class_id FROM registration_application_classes WHERE application_id=?'); $classStmt->execute([$id]);
-            $enroll = $pdo->prepare("INSERT INTO enrollments (id,class_id,student_id,status) VALUES (?,?,?,'enrolled') ON DUPLICATE KEY UPDATE status='enrolled'");
-            foreach ($classStmt->fetchAll(PDO::FETCH_COLUMN) as $classId) $enroll->execute([uuid(),$classId,$app['auth_user_id']]);
-        } elseif ($app['requested_role'] === 'instructor') {
-            $update = $pdo->prepare('UPDATE classes SET instructor_id=? WHERE id=?'); foreach ($assigned as $classId) $update->execute([$app['auth_user_id'],$classId]);
-        } elseif ($assigned) fail('Classes can only be assigned to instructor registrations.');
+        $insert = $pdo->prepare('INSERT INTO profiles (id,onecampus_user_id,source_system,school_id,email,full_name,first_name,middle_name,last_name,suffix,class_code,program,year_level,block,academic_year,semester,role,status) VALUES (?,NULL,\'lms_registration\',?,?,?,?,?,?,?,?,?,?,?,?,?,?,\'active\')');
+        $insert->execute([$app['auth_user_id'],$schoolId,$app['email'],$app['full_name'],$app['first_name'],$app['middle_name'],$app['last_name'],$app['suffix'],$app['class_code'],$app['program'],$app['year_level'],$app['block'],$app['academic_year'],$app['semester'],$app['requested_role']]);
         $pdo->prepare("UPDATE registration_applications SET status='approved',reviewed_by=?,reviewed_at=NOW() WHERE id=?")->execute([$admin['id'],$id]);
         $pdo->commit(); $profile = $pdo->prepare('SELECT * FROM profiles WHERE id=?'); $profile->execute([$app['auth_user_id']]); return normalize_row('profiles',$profile->fetch());
     } catch (Throwable $error) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $error; }
@@ -578,10 +561,10 @@ function sync_onecampus(): never
         else{$headers="Accept: application/json\r\nAuthorization: Bearer {$config['onecampus_api_key']}\r\nX-API-Key: {$config['onecampus_api_key']}\r\n";$json=file_get_contents($config['onecampus_api_url'],false,stream_context_create(['http'=>['header'=>$headers,'timeout'=>30]]));}
         $payload=json_decode((string)$json,true);if(!is_array($payload)||!isset($payload['users'],$payload['subjects'],$payload['classes'],$payload['enrollments']))throw new RuntimeException('OneCampus returned an invalid payload.');
         $pdo=db();$pdo->beginTransaction();$profileMap=[];$subjectMap=[];$classMap=[];
-        foreach($payload['users'] as $item){$find=$pdo->prepare('SELECT id FROM profiles WHERE onecampus_user_id=?');$find->execute([$item['id']]);$id=$find->fetchColumn()?:uuid();$email=strtolower(trim($item['email']));$exists=$pdo->prepare('SELECT id FROM users WHERE id=?');$exists->execute([$id]);if(!$exists->fetchColumn())$pdo->prepare('INSERT INTO users (id,email,password_hash,requested_role) VALUES (?,?,?,?)')->execute([$id,$email,password_hash(bin2hex(random_bytes(24)),PASSWORD_DEFAULT),$item['role']]);$pdo->prepare('INSERT INTO profiles (id,onecampus_user_id,school_id,email,full_name,role,status) VALUES (?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE school_id=VALUES(school_id),email=VALUES(email),full_name=VALUES(full_name),role=VALUES(role),status=VALUES(status)')->execute([$id,$item['id'],$item['schoolId'],$email,$item['fullName'],$item['role'],$item['status']]);$pdo->prepare('INSERT INTO activation_records (id,onecampus_user_id,school_id,email,full_name,role,auth_user_id,activated_at) VALUES (?,?,?,?,?,?,?,IF(?=\'active\',NOW(),NULL)) ON DUPLICATE KEY UPDATE school_id=VALUES(school_id),email=VALUES(email),full_name=VALUES(full_name),role=VALUES(role),auth_user_id=VALUES(auth_user_id)')->execute([uuid(),$item['id'],$item['schoolId'],$email,$item['fullName'],$item['role'],$id,$item['status']]);$profileMap[$item['id']]=$id;}
-        foreach($payload['subjects'] as $item){$find=$pdo->prepare('SELECT id FROM subjects WHERE onecampus_subject_id=?');$find->execute([$item['id']]);$id=$find->fetchColumn()?:uuid();$pdo->prepare('INSERT INTO subjects (id,onecampus_subject_id,code,title,description) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE code=VALUES(code),title=VALUES(title),description=VALUES(description)')->execute([$id,$item['id'],$item['code'],$item['title'],$item['description']??null]);$subjectMap[$item['id']]=$id;}
-        foreach($payload['classes'] as $item){$find=$pdo->prepare('SELECT id FROM classes WHERE onecampus_class_id=?');$find->execute([$item['id']]);$id=$find->fetchColumn()?:uuid();$pdo->prepare('INSERT INTO classes (id,onecampus_class_id,subject_id,instructor_id,section,school_year,semester,status) VALUES (?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE subject_id=VALUES(subject_id),instructor_id=VALUES(instructor_id),section=VALUES(section),school_year=VALUES(school_year),semester=VALUES(semester),status=VALUES(status)')->execute([$id,$item['id'],$subjectMap[$item['subjectId']],$profileMap[$item['instructorId']],$item['section'],$item['schoolYear'],$item['semester'],$item['status']]);$classMap[$item['id']]=$id;}
-        foreach($payload['enrollments'] as $item){$pdo->prepare('INSERT INTO enrollments (id,onecampus_enrollment_id,class_id,student_id,status) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE class_id=VALUES(class_id),student_id=VALUES(student_id),status=VALUES(status)')->execute([uuid(),$item['id'],$classMap[$item['classId']],$profileMap[$item['studentId']],$item['status']]);}
+        foreach($payload['users'] as $item){$email=strtolower(trim($item['email']));$find=$pdo->prepare('SELECT id FROM profiles WHERE onecampus_user_id=? OR LOWER(email)=? LIMIT 1');$find->execute([$item['id'],$email]);$id=$find->fetchColumn()?:uuid();$exists=$pdo->prepare('SELECT id FROM users WHERE id=?');$exists->execute([$id]);if(!$exists->fetchColumn())$pdo->prepare('INSERT INTO users (id,email,password_hash,requested_role) VALUES (?,?,?,?)')->execute([$id,$email,password_hash(bin2hex(random_bytes(24)),PASSWORD_DEFAULT),$item['role']]);$owner=$item['role']==='instructor'?'employee_management':($item['role']==='student'?'enrollment_management':'onecampus');$pdo->prepare('INSERT INTO profiles (id,onecampus_user_id,source_system,synced_at,school_id,email,full_name,role,status) VALUES (?,?,?,NOW(),?,?,?,?,?) ON DUPLICATE KEY UPDATE onecampus_user_id=VALUES(onecampus_user_id),source_system=VALUES(source_system),synced_at=NOW(),school_id=VALUES(school_id),email=VALUES(email),full_name=VALUES(full_name),role=VALUES(role),status=VALUES(status)')->execute([$id,$item['id'],$owner,$item['schoolId'],$email,$item['fullName'],$item['role'],$item['status']]);$pdo->prepare('INSERT INTO activation_records (id,onecampus_user_id,school_id,email,full_name,role,auth_user_id,activated_at) VALUES (?,?,?,?,?,?,?,IF(?=\'active\',NOW(),NULL)) ON DUPLICATE KEY UPDATE school_id=VALUES(school_id),email=VALUES(email),full_name=VALUES(full_name),role=VALUES(role),auth_user_id=VALUES(auth_user_id)')->execute([uuid(),$item['id'],$item['schoolId'],$email,$item['fullName'],$item['role'],$id,$item['status']]);$profileMap[$item['id']]=$id;}
+        foreach($payload['subjects'] as $item){$find=$pdo->prepare('SELECT id FROM subjects WHERE onecampus_subject_id=?');$find->execute([$item['id']]);$id=$find->fetchColumn()?:uuid();$pdo->prepare('INSERT INTO subjects (id,onecampus_subject_id,source_system,synced_at,code,title,description) VALUES (?,?,\'course_catalog\',NOW(),?,?,?) ON DUPLICATE KEY UPDATE source_system=VALUES(source_system),synced_at=NOW(),code=VALUES(code),title=VALUES(title),description=VALUES(description)')->execute([$id,$item['id'],$item['code'],$item['title'],$item['description']??null]);$subjectMap[$item['id']]=$id;}
+        foreach($payload['classes'] as $item){$find=$pdo->prepare('SELECT id FROM classes WHERE onecampus_class_id=?');$find->execute([$item['id']]);$id=$find->fetchColumn()?:uuid();$pdo->prepare('INSERT INTO classes (id,onecampus_class_id,source_system,synced_at,subject_id,instructor_id,section,school_year,semester,status) VALUES (?,?,\'class_scheduling\',NOW(),?,?,?,?,?,?) ON DUPLICATE KEY UPDATE source_system=VALUES(source_system),synced_at=NOW(),subject_id=VALUES(subject_id),instructor_id=VALUES(instructor_id),section=VALUES(section),school_year=VALUES(school_year),semester=VALUES(semester),status=VALUES(status)')->execute([$id,$item['id'],$subjectMap[$item['subjectId']],$profileMap[$item['instructorId']],$item['section'],$item['schoolYear'],$item['semester'],$item['status']]);$classMap[$item['id']]=$id;}
+        foreach($payload['enrollments'] as $item){$pdo->prepare('INSERT INTO enrollments (id,onecampus_enrollment_id,source_system,synced_at,class_id,student_id,status) VALUES (?,?,\'enrollment_management\',NOW(),?,?,?) ON DUPLICATE KEY UPDATE source_system=VALUES(source_system),synced_at=NOW(),class_id=VALUES(class_id),student_id=VALUES(student_id),status=VALUES(status)')->execute([uuid(),$item['id'],$classMap[$item['classId']],$profileMap[$item['studentId']],$item['status']]);}
         $counts=['users'=>count($payload['users']),'subjects'=>count($payload['subjects']),'classes'=>count($payload['classes']),'enrollments'=>count($payload['enrollments'])];$pdo->prepare("UPDATE sync_logs SET status='success',records=?,message=?,completed_at=NOW() WHERE id=?")->execute([json_encode($counts),'Synchronization completed using '.($source==='mock'?'mock fixtures.':'OneCampus API.'),$logId]);$pdo->commit();json_response(['message'=>'OneCampus synchronization completed.','source'=>$source,'counts'=>$counts]);
     }catch(Throwable $error){if(db()->inTransaction())db()->rollBack();db()->prepare("UPDATE sync_logs SET status='failed',message=?,completed_at=NOW() WHERE id=?")->execute([$error->getMessage(),$logId]);throw $error;}
 }
