@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 $apiDirectory = realpath(__DIR__) ?: __DIR__;
 $projectRoot = dirname($apiDirectory, 2);
+$privateRoot = basename($projectRoot) === 'dist' ? dirname($projectRoot) : $projectRoot;
 $config = [
     'db_host' => getenv('LMS_DB_HOST') ?: '127.0.0.1',
     'db_port' => getenv('LMS_DB_PORT') ?: '3306',
@@ -12,19 +13,27 @@ $config = [
     'app_url' => rtrim(getenv('LMS_APP_URL') ?: 'http://localhost/lms', '/'),
     'onecampus_api_url' => trim(getenv('ONECAMPUS_API_URL') ?: ''),
     'onecampus_api_key' => getenv('ONECAMPUS_API_KEY') ?: '',
-    'onecampus_db_host' => trim(getenv('ONECAMPUS_DB_HOST') ?: ''),
+    'onecampus_db_host' => trim(getenv('ONECAMPUS_DB_HOST') ?: '192.168.109.211'),
     'onecampus_db_port' => getenv('ONECAMPUS_DB_PORT') ?: '3306',
     'onecampus_db_name' => getenv('ONECAMPUS_DB_NAME') ?: 'adfc_onecampus',
-    'onecampus_db_user' => getenv('ONECAMPUS_DB_USER') ?: '',
+    'onecampus_db_user' => getenv('ONECAMPUS_DB_USER') ?: 'adfc_subsystems',
     'onecampus_db_pass' => getenv('ONECAMPUS_DB_PASS') ?: '',
+    'onecampus_setup_completed' => false,
     'project_root' => $projectRoot,
-    'storage_path' => $projectRoot . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'uploads',
+    'private_root' => $privateRoot,
+    'storage_path' => $privateRoot . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'uploads',
 ];
 
-$localConfig = $projectRoot . DIRECTORY_SEPARATOR . 'api' . DIRECTORY_SEPARATOR . 'config.local.php';
+$localConfig = $privateRoot . DIRECTORY_SEPARATOR . 'api' . DIRECTORY_SEPARATOR . 'config.local.php';
 if (is_file($localConfig)) {
     $overrides = require $localConfig;
     if (is_array($overrides)) $config = array_replace($config, $overrides);
+}
+
+$setupConfig = $privateRoot . DIRECTORY_SEPARATOR . 'api' . DIRECTORY_SEPARATOR . 'onecampus.setup.php';
+if (is_file($setupConfig)) {
+    $overrides = require $setupConfig;
+    if (is_array($overrides)) $config = array_replace($config, $overrides, ['onecampus_setup_completed' => true]);
 }
 
 return $config;

@@ -10,11 +10,11 @@ return [
     'app_url' => 'http://localhost/lms',
     'onecampus_api_url' => '',
     'onecampus_api_key' => '',
-    // Optional read-only connection to ADFC_OneCampus_Unified_Schema.sql.
-    // Set the database server's LAN IP here, never in the React login form.
-    'onecampus_db_host' => '',
+    // Optional read-only connection to database/adfc_onecampus.sql.
+    // Default host; the login page may test and select a private LAN IP for the current PHP session.
+    'onecampus_db_host' => '192.168.109.211',
     'onecampus_db_port' => '3306',
     'onecampus_db_name' => 'adfc_onecampus',
-    'onecampus_db_user' => 'lms_reader',
+    'onecampus_db_user' => 'adfc_lms',
     'onecampus_db_pass' => '',
 ];

@@ -48,15 +48,23 @@ Synchronization source priority is: unified OneCampus database when `ONECAMPUS_D
 For a database server on another computer, place its LAN IP in the private PHP configuration, for example:
 
 ```php
-'onecampus_db_host' => '192.168.1.20',
+'onecampus_db_host' => '192.168.109.211',
 'onecampus_db_name' => 'adfc_onecampus',
-'onecampus_db_user' => 'lms_reader',
-'onecampus_db_pass' => 'use-a-strong-password',
+'onecampus_db_user' => 'adfc_subsystems',
+'onecampus_db_pass' => '',
 ```
 
-Do not place the MySQL IP, username, or password in a login-page field or any `VITE_*` variable. The browser connects to the PHP API; PHP connects to MySQL.
+For local testing when XAMPP/MariaDB and `adfc_onecampus` are on the same computer, use `127.0.0.1`. The setup page provides **This PC (home)** and **School server** shortcuts. `127.0.0.1` always means the computer running the LMS PHP API; it cannot reach the school database from home unless that database also exists locally.
+
+Do not place MySQL credentials in any `VITE_*` variable. The pre-login setup form sends the connection details to PHP over the current LMS origin; PHP retains them in the server-side session and performs the database connection.
 
 LAN users should open the LMS through the Apache server address, for example `http://192.168.1.10/lms/`. Keep `VITE_API_URL=/lms/api/index.php` so login and PHP session cookies remain on the same origin.
+
+If the shared ADFC application server is `192.168.109.211` and Apache maps `/lms` to this project's `dist` directory, the LMS address is `http://192.168.109.211/lms/` (Apache on Windows also normally accepts `/LMS/`). This is separate from paths such as `/billing-system/` and `/adfc-kiosk/`.
+
+Before login, `/lms/setup` asks for the database host, port, database name, `adfc_subsystems` username, and its current database password (blank when no password is configured). **Verify OneCampus and finish setup** verifies the unified tables and writes the verified database connection to the private `api/onecampus.setup.php` file. A successful connection displays a confirmation modal with the verified server details; selecting **Continue to login** opens the LMS login page. Setup does not create or change an LMS account password. After setup, the login page provides a **Back to database setup/status** button. The setup page then shows green when the saved OneCampus connection is reachable and red when it is unavailable, with **Check connection again** and **Disconnect** actions. Disconnect requires confirmation, deletes only `C:\xampp\htdocs\LMS\api\onecampus.setup.php`, clears the temporary connection session, and returns to the editable setup form. Once the first administrator exists, only an authenticated active LMS administrator can disconnect.
+
+The LMS still requires its own `lms_db` because the shared `adfc_onecampus` tables use a different identity and academic schema. Do not overwrite `adfc_onecampus.users`, `announcements`, or `enrollments` with the LMS schema. After importing `database/schema.sql` into `lms_db`, open `/lms/register/admin` to create the first administrator. That account is active immediately; public administrator registration closes as soon as one administrator profile exists.
 
 ## 4. Start and import MariaDB
 

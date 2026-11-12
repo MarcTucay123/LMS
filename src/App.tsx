@@ -1,13 +1,15 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppLayout } from './components/AppLayout'
 import { AuthLayout } from './components/AuthLayout'
-import { GuestOnlyRoute, ProtectedRoute, RoleRoute } from './components/RouteGuards'
+import { GuestOnlyRoute, ProtectedRoute, RoleRoute, SetupRequiredRoute } from './components/RouteGuards'
 import { AuthProvider } from './hooks/useAuth'
+import { OneCampusSetupProvider } from './hooks/useOneCampusSetup'
 import { ClassPage } from './pages/ClassPage'
 import { ClassesPage } from './pages/ClassesPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
+import { OneCampusSetupPage } from './pages/OneCampusSetupPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
@@ -20,8 +22,11 @@ import { AdminUsersPage } from './pages/admin/AdminUsersPage'
 export default function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
-      <AuthProvider>
-        <Routes>
+      <OneCampusSetupProvider>
+        <AuthProvider>
+          <Routes>
+          <Route path="/setup" element={<OneCampusSetupPage />} />
+          <Route element={<SetupRequiredRoute />}>
           <Route element={<GuestOnlyRoute />}>
             <Route element={<AuthLayout />}>
               <Route path="/login" element={<LoginPage />} />
@@ -49,9 +54,11 @@ export default function App() {
             </Route>
           </Route>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          </Route>
           <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </AuthProvider>
+          </Routes>
+        </AuthProvider>
+      </OneCampusSetupProvider>
     </BrowserRouter>
   )
 }

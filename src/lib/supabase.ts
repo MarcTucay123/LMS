@@ -48,7 +48,12 @@ async function request<T>(action: string, body: Record<string, unknown> = {}, op
     ...options,
     body: options.body ?? JSON.stringify({ action, ...body }),
   })
-  const payload = await response.json().catch(() => ({})) as { error?: string } & T
+  const contentType = response.headers.get('content-type') ?? ''
+  if (!contentType.toLowerCase().includes('application/json')) {
+    throw apiError('The PHP API returned an invalid response. Run the LMS through XAMPP Apache or the configured Vite proxy.', response)
+  }
+  const payload = await response.json().catch(() => null) as ({ error?: string } & T) | null
+  if (!payload) throw apiError('The PHP API returned invalid JSON.', response)
   if (!response.ok) throw apiError(payload.error || `Request failed with status ${response.status}.`, response, payload)
   return payload
 }
@@ -182,6 +187,30 @@ export const supabase = {
   health: async () => {
     try {
       const data = await request<{ status: 'ok'; database: 'connected'; server_time: string }>('system.health')
+      return { data, error: null }
+    } catch (caught) { return { data: null, error: caught as ApiError } }
+  },
+  oneCampusStatus: async () => {
+    try {
+      const data = await request<{ configured: boolean; connected: boolean; host?: string; port?: string; database?: string; username?: string }>('system.onecampus-status')
+      return { data, error: null }
+    } catch (caught) { return { data: null, error: caught as ApiError } }
+  },
+  firstAdminStatus: async () => {
+    try {
+      const data = await request<{ available: boolean }>('system.first-admin-status')
+      return { data, error: null }
+    } catch (caught) { return { data: null, error: caught as ApiError } }
+  },
+  connectOneCampus: async (connection: { host: string; port: string; database: string; username: string; password: string }) => {
+    try {
+      const data = await request<{ status: 'connected'; host: string; port: string; database: string; username: string }>('system.onecampus-connection', connection)
+      return { data, error: null }
+    } catch (caught) { return { data: null, error: caught as ApiError } }
+  },
+  disconnectOneCampus: async () => {
+    try {
+      const data = await request<{ disconnected: boolean }>('system.onecampus-disconnect')
       return { data, error: null }
     } catch (caught) { return { data: null, error: caught as ApiError } }
   },

@@ -19,6 +19,10 @@ $action = (string)($request['action'] ?? '');
 try {
     match ($action) {
         'system.health' => system_health(),
+        'system.onecampus-status' => system_onecampus_status(),
+        'system.onecampus-connection' => system_onecampus_connection($request),
+        'system.onecampus-disconnect' => system_onecampus_disconnect(),
+        'system.first-admin-status' => system_first_admin_status(),
         'auth.session' => json_response(['session' => session_payload()]),
         'auth.login' => auth_login($request),
         'auth.logout' => auth_logout(),
@@ -48,6 +52,123 @@ function system_health(): never
     ]);
 }
 
+function system_first_admin_status(): never
+{
+    $statement = db()->query("SELECT COUNT(*) FROM profiles WHERE role='admin'");
+    json_response(['available' => (int)$statement->fetchColumn() === 0]);
+}
+
+function system_onecampus_connection(array $request): never
+{
+    global $config;
+    if ($config['onecampus_setup_completed']) fail('OneCampus setup is already complete. Remove the private setup file on the server to reconfigure it.', 409);
+    $host = trim((string)($request['host'] ?? ''));
+    $port = trim((string)($request['port'] ?? '3306'));
+    $name = trim((string)($request['database'] ?? 'adfc_onecampus'));
+    $user = trim((string)($request['username'] ?? ''));
+    $pass = (string)($request['password'] ?? '');
+    if (!filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) || !is_private_lan_ipv4($host)) {
+        fail('Enter 127.0.0.1 for a database on this PC or a private LAN IPv4 address such as 192.168.109.211.');
+    }
+    if (!ctype_digit($port) || (int)$port < 1 || (int)$port > 65535) fail('Enter a valid database port.');
+    if (!preg_match('/^[A-Za-z0-9_]+$/', $name)) fail('Enter a valid database name.');
+    if ($user === '') fail('Enter the database username.');
+    $connection = ['host' => $host, 'port' => $port, 'name' => $name, 'user' => $user, 'pass' => $pass];
+    try {
+        verify_onecampus_database($connection);
+        persist_onecampus_setup($connection);
+        $_SESSION['onecampus_connection'] = $connection;
+        json_response([
+            'status' => 'connected',
+            'host' => $host,
+            'port' => $port,
+            'database' => $name,
+            'username' => $user,
+        ]);
+    } catch (PDOException $error) {
+        error_log('OneCampus database connection failed for ' . $host . ': ' . $error->getMessage());
+        fail('Unable to connect to the OneCampus database PC. Check its IP, MariaDB service, firewall, and read-only account.', 503);
+    }
+}
+
+function system_onecampus_disconnect(): never
+{
+    global $config;
+    $administratorCount = (int)db()->query("SELECT COUNT(*) FROM profiles WHERE role='admin'")->fetchColumn();
+    if ($administratorCount > 0) require_admin();
+
+    $path = $config['private_root'] . DIRECTORY_SEPARATOR . 'api' . DIRECTORY_SEPARATOR . 'onecampus.setup.php';
+    if (is_file($path) && !unlink($path)) {
+        throw new RuntimeException('Unable to delete the private OneCampus setup file.');
+    }
+    unset($_SESSION['onecampus_connection']);
+    json_response(['disconnected' => true]);
+}
+
+function persist_onecampus_setup(array $connection): void
+{
+    global $config;
+    $directory = $config['private_root'] . DIRECTORY_SEPARATOR . 'api';
+    if (!is_dir($directory) && !mkdir($directory, 0700, true) && !is_dir($directory)) {
+        throw new RuntimeException('Unable to create the private setup directory.');
+    }
+    $path = $directory . DIRECTORY_SEPARATOR . 'onecampus.setup.php';
+    $values = [
+        'onecampus_db_host' => $connection['host'],
+        'onecampus_db_port' => $connection['port'],
+        'onecampus_db_name' => $connection['name'],
+        'onecampus_db_user' => $connection['user'],
+        'onecampus_db_pass' => $connection['pass'],
+    ];
+    $contents = "<?php\ndeclare(strict_types=1);\n\nreturn " . var_export($values, true) . ";\n";
+    if (file_put_contents($path, $contents, LOCK_EX) === false) throw new RuntimeException('Unable to save the private OneCampus setup.');
+}
+
+function system_onecampus_status(): never
+{
+    global $config;
+    $connection = onecampus_connection_config();
+    $configured = $config['onecampus_setup_completed'] || isset($_SESSION['onecampus_connection']);
+    if (!$configured) json_response(['configured' => false, 'connected' => false]);
+    $details = [
+        'configured' => true,
+        'host' => $connection['host'],
+        'port' => $connection['port'],
+        'database' => $connection['name'],
+        'username' => $connection['user'],
+    ];
+    if ($connection['host'] === '' || $connection['user'] === '') json_response([...$details, 'connected' => false]);
+    try {
+        verify_onecampus_database($connection);
+        json_response([...$details, 'connected' => true]);
+    } catch (Throwable $error) {
+        error_log('OneCampus status check failed: ' . $error->getMessage());
+        json_response([...$details, 'connected' => false]);
+    }
+}
+
+function verify_onecampus_database(array $connection): void
+{
+    $source = onecampus_db($connection);
+    $requiredTables = ['users', 'students', 'instructors', 'subjects', 'academic_periods', 'academic_classes', 'class_enrollments'];
+    $placeholders = implode(',', array_fill(0, count($requiredTables), '?'));
+    $statement = $source->prepare("SELECT table_name FROM information_schema.tables WHERE table_schema=? AND table_name IN ($placeholders)");
+    $statement->execute([$connection['name'], ...$requiredTables]);
+    $found = array_map('strtolower', $statement->fetchAll(PDO::FETCH_COLUMN));
+    $missing = array_values(array_diff($requiredTables, $found));
+    if ($missing !== []) fail('Connected, but the database is missing required OneCampus tables: ' . implode(', ', $missing) . '.', 422);
+}
+
+function is_private_lan_ipv4(string $host): bool
+{
+    $parts = array_map('intval', explode('.', $host));
+    if (count($parts) !== 4) return false;
+    return $host === '127.0.0.1'
+        || $parts[0] === 10
+        || ($parts[0] === 172 && $parts[1] >= 16 && $parts[1] <= 31)
+        || ($parts[0] === 192 && $parts[1] === 168);
+}
+
 function auth_login(array $request): never
 {
     $email = strtolower(trim((string)($request['email'] ?? '')));
@@ -64,12 +185,8 @@ function auth_login(array $request): never
 
 function auth_logout(): never
 {
-    $_SESSION = [];
-    if (ini_get('session.use_cookies')) {
-        $params = session_get_cookie_params();
-        setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
-    }
-    session_destroy();
+    unset($_SESSION['user_id']);
+    session_regenerate_id(true);
     json_response([]);
 }
 
@@ -538,10 +655,11 @@ function register_account(array $body): never
         $rows=fetch_all("SELECT c.id,c.section,c.school_year,c.semester,JSON_OBJECT('code',s.code,'title',s.title) subject FROM classes c JOIN subjects s ON s.id=c.subject_id WHERE c.status='active' ORDER BY c.school_year DESC,c.section ASC",[],'classes');
         foreach($rows as &$row)$row['subject']=json_decode($row['subject'],true);json_response(['classes'=>$rows]);
     }
-    $role=(string)($body['role']??'');if(!in_array($role,['student','instructor'],true))fail('Public registration is available only for students and instructors.',403);
+    $role=(string)($body['role']??'');if(!in_array($role,['student','instructor','admin'],true))fail('Select a valid registration role.',403);
     $first=valid_name($body['firstName']??null,true);$middle=valid_name($body['middleName']??null);$last=valid_name($body['lastName']??null,true);$suffix=trim((string)($body['suffix']??''))?:null;
     $email=strtolower(trim((string)($body['email']??'')));if(!filter_var($email,FILTER_VALIDATE_EMAIL))fail('Use a valid email address.');
     $password=(string)($body['password']??'');validate_password($password);$full=implode(' ',array_filter([$first,$middle,$last,$suffix]));
+    if($role==='admin')register_first_administrator($first,$middle,$last,$suffix,$email,$password,$full);
     $studentId=$role==='student'?strtoupper(trim((string)($body['studentIdNumber']??''))):null;$classCode=$role==='student'?trim((string)($body['classCode']??'')):null;$program=$role==='student'?strtoupper(trim((string)($body['program']??''))):null;$year=$role==='student'?(int)($body['yearLevel']??0):null;$block=$role==='student'?strtoupper(trim((string)($body['block']??''))):null;$academicYear=$role==='student'?trim((string)($body['academicYear']??'')):null;$semester=$role==='student'?trim((string)($body['semester']??'')):null;$classIds=$role==='student'&&is_array($body['selectedClassIds']??null)?array_values(array_unique($body['selectedClassIds'])):[];
     if($role==='student'){
         if(!preg_match('/^[A-Z0-9-]{4,30}$/',$studentId??'')||!preg_match('/^[0-9]{4}$/',$classCode??'')||!preg_match('/^[0-9]{4}-[0-9]{4}$/',$academicYear??'')||$year<1||$year>10||!$program||!$block||!$semester||!$classIds||!($body['termsAccepted']??false))fail('Complete all required student registration details.');
@@ -557,6 +675,31 @@ function register_account(array $body): never
     }catch(Throwable $error){if($pdo->inTransaction())$pdo->rollBack();if(unique_violation($error))fail('This email address or Student ID Number is already registered.',409);throw $error;}
 }
 
+function register_first_administrator(?string $first, ?string $middle, ?string $last, ?string $suffix, string $email, string $password, string $full): never
+{
+    $pdo = db();
+    $lock = $pdo->query("SELECT GET_LOCK('adfc_lms_first_administrator',5)")->fetchColumn();
+    if ((int)$lock !== 1) fail('Administrator registration is busy. Please try again.', 503);
+    try {
+        if ((int)$pdo->query("SELECT COUNT(*) FROM profiles WHERE role='admin'")->fetchColumn() > 0) {
+            fail('The first administrator has already been created. Sign in or ask an existing administrator to manage accounts.', 409);
+        }
+        $pdo->beginTransaction();
+        $id = uuid();
+        $schoolId = 'ADFC-ADMIN-' . strtoupper(substr(str_replace('-', '', $id), 0, 8));
+        $pdo->prepare('INSERT INTO users (id,email,password_hash,requested_role) VALUES (?,?,?,\'admin\')')->execute([$id,$email,password_hash($password,PASSWORD_DEFAULT)]);
+        $pdo->prepare("INSERT INTO profiles (id,onecampus_user_id,source_system,school_id,email,full_name,first_name,middle_name,last_name,suffix,role,status) VALUES (?,NULL,'lms_registration',?,?,?,?,?,?,?,'admin','active')")->execute([$id,$schoolId,$email,$full,$first,$middle,$last,$suffix]);
+        $pdo->commit();
+        json_response(['message' => 'Administrator account created. You can sign in immediately.'], 201);
+    } catch (Throwable $error) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        if (unique_violation($error)) fail('This email address is already registered.', 409);
+        throw $error;
+    } finally {
+        $pdo->query("SELECT RELEASE_LOCK('adfc_lms_first_administrator')");
+    }
+}
+
 function activate_account(array $body): never
 {
     $oneCampus=trim((string)($body['onecampusId']??''));$email=strtolower(trim((string)($body['email']??'')));$password=(string)($body['password']??'');validate_password($password);
@@ -566,7 +709,7 @@ function activate_account(array $body): never
 
 function sync_onecampus(): never
 {
-    global $config;$admin=require_admin();$source=$config['onecampus_db_host']!==''?'onecampus_database':($config['onecampus_api_url']!==''?'onecampus_api':'mock');$logId=uuid();db()->prepare("INSERT INTO sync_logs (id,initiated_by,source,status,records) VALUES (?,?,?,'running','{}')")->execute([$logId,$admin['id'],$source]);
+    global $config;$admin=require_admin();$databaseConnection=onecampus_connection_config();$source=$databaseConnection['host']!==''?'onecampus_database':($config['onecampus_api_url']!==''?'onecampus_api':'mock');$logId=uuid();db()->prepare("INSERT INTO sync_logs (id,initiated_by,source,status,records) VALUES (?,?,?,'running','{}')")->execute([$logId,$admin['id'],$source]);
     try{
         if($source==='onecampus_database'){$payload=onecampus_database_payload();}
         else{if($source==='mock'){$json=file_get_contents($config['project_root'].DIRECTORY_SEPARATOR.'mock-onecampus'.DIRECTORY_SEPARATOR.'fixtures.json');}else{$headers="Accept: application/json\r\nAuthorization: Bearer {$config['onecampus_api_key']}\r\nX-API-Key: {$config['onecampus_api_key']}\r\n";$json=file_get_contents($config['onecampus_api_url'],false,stream_context_create(['http'=>['header'=>$headers,'timeout'=>30]]));}$payload=json_decode((string)$json,true);}
@@ -589,15 +732,28 @@ function onecampus_database_payload(): array
         u.full_name AS fullName,
         COALESCE(s.student_number, i.employee_number, u.username, u.user_uid, CONCAT('USER-', u.user_id)) AS schoolId,
         CASE
-            WHEN LOWER(u.role) LIKE '%admin%' THEN 'admin'
-            WHEN LOWER(u.role) LIKE '%instructor%' OR LOWER(u.role) LIKE '%faculty%' OR LOWER(u.role) LIKE '%teacher%' THEN 'instructor'
+            WHEN EXISTS (
+                SELECT 1 FROM user_access_roles uar
+                JOIN access_roles ar ON ar.role_id = uar.role_id
+                WHERE uar.user_id = u.user_id AND LOWER(ar.role_name) LIKE '%admin%'
+            ) THEN 'admin'
+            WHEN i.instructor_id IS NOT NULL THEN 'instructor'
             ELSE 'student'
         END AS role,
         CASE WHEN u.status = 'Active' THEN 'active' ELSE 'inactive' END AS status
       FROM users u
       LEFT JOIN students s ON s.student_id = u.student_id
       LEFT JOIN instructors i ON i.user_id = u.user_id
-      WHERE u.email IS NOT NULL AND u.email <> ''")->fetchAll();
+      WHERE u.email IS NOT NULL AND u.email <> ''
+        AND (
+            s.student_id IS NOT NULL
+            OR i.instructor_id IS NOT NULL
+            OR EXISTS (
+                SELECT 1 FROM user_access_roles uar
+                JOIN access_roles ar ON ar.role_id = uar.role_id
+                WHERE uar.user_id = u.user_id AND LOWER(ar.role_name) LIKE '%admin%'
+            )
+        )")->fetchAll();
     $subjects = $source->query("SELECT
         COALESCE(subject_uid, CONCAT('SUBJECT-', subject_id)) AS id,
         subject_code AS code,
@@ -620,11 +776,11 @@ function onecampus_database_payload(): array
       JOIN users u ON u.user_id = i.user_id
       WHERE c.class_uid IS NOT NULL OR c.class_id IS NOT NULL")->fetchAll();
     $enrollments = $source->query("SELECT
-        CONCAT('FE-ENROLLMENT-', e.enrollment_id) AS id,
+        COALESCE(e.enrollment_uid, CONCAT('CLASS-ENROLLMENT-', e.enrollment_id)) AS id,
         COALESCE(c.class_uid, CONCAT('CLASS-', c.class_id)) AS classId,
         COALESCE(u.user_uid, CONCAT('USER-', u.user_id)) AS studentId,
-        CASE e.enrollment_status WHEN 'ACTIVE' THEN 'enrolled' WHEN 'COMPLETED' THEN 'completed' ELSE 'dropped' END AS status
-      FROM fe_class_enrollments e
+        CASE e.membership_status WHEN 'Active' THEN 'enrolled' WHEN 'Completed' THEN 'completed' ELSE 'dropped' END AS status
+      FROM class_enrollments e
       JOIN academic_classes c ON c.class_id = e.class_id
       JOIN students s ON s.student_id = e.student_id
       JOIN users u ON u.student_id = s.student_id")->fetchAll();

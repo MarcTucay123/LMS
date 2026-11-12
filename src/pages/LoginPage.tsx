@@ -38,6 +38,8 @@ export function LoginPage() {
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const requestedPortal = searchParams.get('portal')
+  const requestedReturnTo = searchParams.get('returnTo')
+  const returnTo = requestedReturnTo === '/setup?action=disconnect' ? requestedReturnTo : '/dashboard'
   const initialPortal: LoginPortal = requestedPortal === 'instructor' || requestedPortal === 'admin' ? requestedPortal : 'student'
   const [portal, setPortal] = useState<LoginPortal>(initialPortal)
   const [email, setEmail] = useState('')
@@ -116,7 +118,7 @@ export function LoginPage() {
 
     await supabase.auth.refreshSession()
     setSubmitting(false)
-    navigate('/dashboard', { replace: true })
+    navigate(returnTo, { replace: true })
   }
 
   return (
@@ -148,6 +150,7 @@ export function LoginPage() {
 
       {message && <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{message}</div>}
       {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{error}</div>}
+
       <div className={`mb-4 flex items-center gap-2 rounded-lg border p-3 text-xs font-semibold ${serverStatus === 'online' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : serverStatus === 'offline' ? 'border-red-200 bg-red-50 text-red-800' : 'border-slate-200 bg-slate-50 text-slate-600'}`} role="status">
         <Server size={16} aria-hidden="true" />
         <span>{serverStatus === 'online' ? 'Connected' : serverStatus === 'offline' ? 'Server unavailable' : 'Checking server'}: {apiServerLabel}</span>
@@ -174,7 +177,8 @@ export function LoginPage() {
       )}
 
       <div className="mt-6 border-t border-slate-100 pt-5 text-center">
-        {portal === 'admin' ? <p className="text-sm text-slate-500">Administrator accounts are provisioned by an existing administrator, installation seed, or OneCampus.</p> : <><p className="text-sm text-slate-600">Don&apos;t have an account? <Link className="font-bold text-brand-700 hover:text-brand-800" to={`/register/${portal}`}>Register as {roleLabels[portal]}</Link></p><p className="mt-2 text-xs text-slate-400">This form creates a pending {roleLabels[portal].toLowerCase()} application for administrator approval.</p></>}
+        {portal === 'admin' ? <><p className="text-sm text-slate-600">Setting up a new LMS? <Link className="font-bold text-brand-700 hover:text-brand-800" to="/register/admin">Create the first administrator</Link></p><p className="mt-2 text-xs text-slate-400">This option closes automatically after the first administrator account is created.</p></> : <><p className="text-sm text-slate-600">Don&apos;t have an account? <Link className="font-bold text-brand-700 hover:text-brand-800" to={`/register/${portal}`}>Register as {roleLabels[portal]}</Link></p><p className="mt-2 text-xs text-slate-400">This form creates a pending {roleLabels[portal].toLowerCase()} application for administrator approval.</p></>}
+        <Link className="button-secondary mt-4 w-full" to="/setup"><Server size={17} /> Back to database setup/status</Link>
       </div>
     </>
   )

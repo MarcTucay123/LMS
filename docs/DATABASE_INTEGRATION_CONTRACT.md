@@ -78,21 +78,21 @@ External records must be updated through the synchronization service. The generi
 
 ## Unified database table mapping
 
-When `ADFC_OneCampus_Unified_Schema.sql` is hosted on a shared MySQL/MariaDB server, the LMS reads it through the PHP API using a dedicated read-only connection. It does not connect from the browser and it does not duplicate the authoritative tables.
+When `database/adfc_onecampus.sql` is hosted on a shared MySQL/MariaDB server, the LMS reads it through the PHP API using a dedicated read-only connection. It does not connect from the browser and it does not duplicate the authoritative tables.
 
 | Unified source | Owner | LMS projection / use |
 |---|---|---|
 | `users`, `instructors`, `students` | Employee Management / Central Auth and Enrollment Management | `profiles`; authentication remains in LMS `users` |
 | `subjects` | Subject and Course Catalog | `subjects` |
 | `academic_periods`, `academic_classes`, `instructors` | Class Scheduling System | `classes` |
-| `fe_class_enrollments` | Enrollment Management System | `enrollments` |
+| `class_enrollments` | Enrollment Management System | `enrollments` |
 | `lms_*` teaching tables | LMS | Use only when deploying the unified database as the LMS content store; do not import them into an existing `lms_db` installation |
 
 The adapter uses stable `*_uid` values where available and deterministic prefixed source IDs otherwise. LMS-local UUIDs remain the foreign keys used by the application.
 
 ## Recommended database upload/import order
 
-1. Import the shared identity and academic master tables from `ADFC_OneCampus_Unified_Schema.sql` on the database server.
+1. Import the shared identity and academic master tables from `database/adfc_onecampus.sql` on the database server.
 2. Create a dedicated read-only database account for the LMS with `SELECT` access to `adfc_onecampus` only.
 3. Import `database/schema.sql` into the LMS-owned `lms_db` database.
 4. Optionally import `database/seed.sql` only for demonstration data.

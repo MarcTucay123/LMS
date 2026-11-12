@@ -139,7 +139,7 @@ CREATE TABLE registration_application_classes (
 CREATE TABLE sync_logs (
   id CHAR(36) PRIMARY KEY,
   initiated_by CHAR(36) NULL,
-  source ENUM('mock','onecampus_api') NOT NULL,
+  source ENUM('mock','onecampus_api','onecampus_database') NOT NULL,
   status ENUM('running','success','failed') NOT NULL,
   records JSON NOT NULL,
   message TEXT NULL,

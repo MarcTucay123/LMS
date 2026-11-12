@@ -1,0 +1,16 @@
+Options -Indexes
+RewriteEngine On
+
+# Serve the production PHP API and compiled Vite assets from dist while the
+# public LAN URL remains /lms/.
+RewriteRule ^api/(.*)$ dist/api/$1 [L]
+RewriteRule ^assets/(.*)$ dist/assets/$1 [L]
+
+# Prevent direct browser access to project source, private data, and tooling.
+RewriteRule ^(?:api|database|docs|mock-onecampus|node_modules|public|src|storage)(?:/|$) - [F,L]
+RewriteRule ^(?:package(?:-lock)?\.json|tsconfig.*\.json|vite\.config\.ts|eslint\.config\.js)$ - [F,L]
+
+# React Router fallback. Apache serves the compiled app, never the source
+# index.html at the project root.
+RewriteRule ^$ dist/index.html [L]
+RewriteRule ^.*$ dist/index.html [L]

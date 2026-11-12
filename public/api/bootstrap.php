@@ -29,24 +29,40 @@ function db(): PDO
     return $pdo;
 }
 
-function onecampus_db(): PDO
+function onecampus_connection_config(): array
 {
-    static $pdo;
     global $config;
-    if ($pdo instanceof PDO) return $pdo;
-    if ($config['onecampus_db_host'] === '') throw new RuntimeException('The OneCampus database connection is not configured.');
+    $sessionConfig = $_SESSION['onecampus_connection'] ?? [];
+    return [
+        'host' => is_array($sessionConfig) && isset($sessionConfig['host']) ? (string)$sessionConfig['host'] : (string)$config['onecampus_db_host'],
+        'port' => is_array($sessionConfig) && isset($sessionConfig['port']) ? (string)$sessionConfig['port'] : (string)$config['onecampus_db_port'],
+        'name' => is_array($sessionConfig) && isset($sessionConfig['name']) ? (string)$sessionConfig['name'] : (string)$config['onecampus_db_name'],
+        'user' => is_array($sessionConfig) && isset($sessionConfig['user']) ? (string)$sessionConfig['user'] : (string)$config['onecampus_db_user'],
+        'pass' => is_array($sessionConfig) && isset($sessionConfig['pass']) ? (string)$sessionConfig['pass'] : (string)$config['onecampus_db_pass'],
+    ];
+}
+
+function onecampus_db(?array $connection = null): PDO
+{
+    static $connections = [];
+    $selected = $connection ?? onecampus_connection_config();
+    if (($selected['host'] ?? '') === '' || ($selected['user'] ?? '') === '') throw new RuntimeException('The OneCampus database connection is not configured.');
+    $connectionKey = hash('sha256', json_encode($selected));
+    if (isset($connections[$connectionKey]) && $connections[$connectionKey] instanceof PDO) return $connections[$connectionKey];
     $dsn = sprintf(
         'mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4',
-        $config['onecampus_db_host'],
-        $config['onecampus_db_port'],
-        $config['onecampus_db_name'],
+        $selected['host'],
+        $selected['port'],
+        $selected['name'],
     );
-    $pdo = new PDO($dsn, $config['onecampus_db_user'], $config['onecampus_db_pass'], [
+    $pdo = new PDO($dsn, $selected['user'], $selected['pass'], [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
+        PDO::ATTR_TIMEOUT => 4,
     ]);
-    return $pdo;
+    $connections[$connectionKey] = $pdo;
+    return $connections[$connectionKey];
 }
 
 function json_response(array $body = [], int $status = 200): never

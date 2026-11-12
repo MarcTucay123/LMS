@@ -6,6 +6,7 @@ dist
 .DS_Store
 .vite
 api/config.local.php
+api/onecampus.setup.php
 storage/uploads
 database/exports
 ~$*.docx

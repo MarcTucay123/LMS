@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useOneCampusSetup } from '../hooks/useOneCampusSetup'
 import type { UserRole } from '../types/database'
 import { ErrorState, LoadingState } from './ScreenState'
 
@@ -7,6 +8,14 @@ export function GuestOnlyRoute() {
   const { user, profile, loading } = useAuth()
   if (loading) return <FullScreenState><LoadingState label="Checking your session…" /></FullScreenState>
   if (user && profile) return <Navigate to="/dashboard" replace />
+  return <Outlet />
+}
+
+export function SetupRequiredRoute() {
+  const { configured, loading } = useOneCampusSetup()
+  const location = useLocation()
+  if (loading) return <FullScreenState><LoadingState label="Checking OneCampus database setup…" /></FullScreenState>
+  if (!configured) return <Navigate to="/setup" replace state={{ from: location }} />
   return <Outlet />
 }
 

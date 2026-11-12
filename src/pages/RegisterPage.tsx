@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { BadgeCheck, BookOpenCheck, Eye, EyeOff, GraduationCap, LockKeyhole, Mail, UserRound } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -6,13 +6,14 @@ import { getFunctionErrorMessage } from '../lib/functionError'
 import type { UserRole } from '../types/database'
 import { StudentRegistrationForm } from './StudentRegistrationForm'
 
-const roleDetails: Record<Exclude<UserRole, 'admin'>, { label: string; description: string; icon: typeof UserRound }> = {
+const roleDetails: Record<UserRole, { label: string; description: string; icon: typeof UserRound }> = {
   student: { label: 'Student', description: 'Register to access your enrolled classes and learning activities after approval.', icon: GraduationCap },
   instructor: { label: 'Instructor', description: 'Register to manage classes assigned by an administrator after approval.', icon: BookOpenCheck },
+  admin: { label: 'Administrator', description: 'Create the first LMS administrator account. It becomes active immediately and this registration closes afterward.', icon: BadgeCheck },
 }
 
-function isPublicRegistrationRole(value: string | undefined): value is Exclude<UserRole, 'admin'> {
-  return value === 'student' || value === 'instructor'
+function isPublicRegistrationRole(value: string | undefined): value is UserRole {
+  return value === 'student' || value === 'instructor' || value === 'admin'
 }
 
 export function RegisterPage() {
@@ -27,13 +28,27 @@ export function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [adminAvailability, setAdminAvailability] = useState<{ role: string | undefined; available: boolean } | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (role !== 'admin') return
+    let active = true
+    void supabase.firstAdminStatus().then(({ data, error: statusError }) => {
+      if (!active) return
+      setAdminAvailability({ role, available: Boolean(data?.available) })
+      setError(statusError?.message ?? null)
+    })
+    return () => { active = false }
+  }, [role])
 
   if (!isPublicRegistrationRole(role)) return <Navigate to="/login?portal=admin" replace />
   if (role === 'student') return <StudentRegistrationForm />
 
   const details = roleDetails[role]
   const RoleIcon = details.icon
+  const checkingAdmin = role === 'admin' && adminAvailability?.role !== role
+  const adminAvailable = role !== 'admin' || adminAvailability?.available === true
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -73,6 +88,7 @@ export function RegisterPage() {
         </div>
       </div>
       {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{error}</div>}
+      {role === 'admin' && !checkingAdmin && !adminAvailable && <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800" role="alert">The first administrator already exists. Public administrator registration is closed.</div>}
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <fieldset>
           <legend className="mb-2 text-sm font-semibold text-slate-700">Personal name</legend>
@@ -87,8 +103,8 @@ export function RegisterPage() {
 
         <label className="field-label">Create password<span className="input-wrap"><LockKeyhole size={18} /><input type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" /><button type="button" className="icon-button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></span></label>
         <label className="field-label">Confirm password<span className="input-wrap"><BadgeCheck size={18} /><input type={showPassword ? 'text' : 'password'} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" /></span></label>
-        <p className="text-xs text-slate-500">Use at least 8 characters with uppercase, lowercase, and a number. Your {details.label.toLowerCase()} account remains pending until approved.</p>
-        <button className="button-primary w-full" disabled={submitting}>{submitting ? 'Submitting…' : `Register as ${details.label}`}</button>
+        <p className="text-xs text-slate-500">Use at least 8 characters with uppercase, lowercase, and a number. {role === 'admin' ? 'The first administrator account is activated immediately.' : `Your ${details.label.toLowerCase()} account remains pending until approved.`}</p>
+        <button className="button-primary w-full" disabled={submitting || checkingAdmin || !adminAvailable}>{checkingAdmin ? 'Checking availability…' : submitting ? 'Submitting…' : role === 'admin' ? 'Create first administrator' : `Register as ${details.label}`}</button>
       </form>
       <p className="mt-5 text-center text-sm text-slate-600">Already registered? <Link className="font-bold text-brand-700" to={`/login?portal=${role}`}>Back to {details.label.toLowerCase()} sign in</Link></p>
     </>

@@ -228,7 +228,7 @@ export interface Database {
         Row: {
           id: string
           initiated_by: string | null
-          source: 'mock' | 'onecampus_api'
+          source: 'mock' | 'onecampus_api' | 'onecampus_database'
           status: 'running' | 'success' | 'failed'
           records: Json
           message: string | null
@@ -238,7 +238,7 @@ export interface Database {
         Insert: {
           id?: string
           initiated_by?: string | null
-          source: 'mock' | 'onecampus_api'
+          source: 'mock' | 'onecampus_api' | 'onecampus_database'
           status: 'running' | 'success' | 'failed'
           records?: Json
           message?: string | null
