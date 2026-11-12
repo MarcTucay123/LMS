@@ -41,9 +41,22 @@ For overrides, copy the example outside the public web root:
 Copy-Item D:\LMS\api\config.local.example.php D:\LMS\api\config.local.php
 ```
 
-Edit `D:\LMS\api\config.local.php` as needed. It is ignored by Git. Environment variables `LMS_DB_HOST`, `LMS_DB_PORT`, `LMS_DB_NAME`, `LMS_DB_USER`, `LMS_DB_PASS`, `LMS_APP_URL`, `ONECAMPUS_API_URL`, and `ONECAMPUS_API_KEY` are also supported.
+Edit `D:\LMS\api\config.local.php` as needed. It is ignored by Git. Environment variables `LMS_DB_HOST`, `LMS_DB_PORT`, `LMS_DB_NAME`, `LMS_DB_USER`, `LMS_DB_PASS`, `LMS_APP_URL`, `ONECAMPUS_API_URL`, `ONECAMPUS_API_KEY`, `ONECAMPUS_DB_HOST`, `ONECAMPUS_DB_PORT`, `ONECAMPUS_DB_NAME`, `ONECAMPUS_DB_USER`, and `ONECAMPUS_DB_PASS` are also supported.
 
-When `ONECAMPUS_API_URL` is empty, synchronization uses `D:\LMS\mock-onecampus\fixtures.json`.
+Synchronization source priority is: unified OneCampus database when `ONECAMPUS_DB_HOST` is set, OneCampus API when `ONECAMPUS_API_URL` is set, then `D:\LMS\mock-onecampus\fixtures.json`.
+
+For a database server on another computer, place its LAN IP in the private PHP configuration, for example:
+
+```php
+'onecampus_db_host' => '192.168.1.20',
+'onecampus_db_name' => 'adfc_onecampus',
+'onecampus_db_user' => 'lms_reader',
+'onecampus_db_pass' => 'use-a-strong-password',
+```
+
+Do not place the MySQL IP, username, or password in a login-page field or any `VITE_*` variable. The browser connects to the PHP API; PHP connects to MySQL.
+
+LAN users should open the LMS through the Apache server address, for example `http://192.168.1.10/lms/`. Keep `VITE_API_URL=/lms/api/index.php` so login and PHP session cookies remain on the same origin.
 
 ## 4. Start and import MariaDB
 

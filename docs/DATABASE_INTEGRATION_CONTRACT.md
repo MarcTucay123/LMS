@@ -76,6 +76,29 @@ External records must be updated through the synchronization service. The generi
 - Existing installation: `database/migrations/20261110_academic_data_ownership.sql`.
 - Export helper: `database/export_database.ps1`.
 
+## Unified database table mapping
+
+When `ADFC_OneCampus_Unified_Schema.sql` is hosted on a shared MySQL/MariaDB server, the LMS reads it through the PHP API using a dedicated read-only connection. It does not connect from the browser and it does not duplicate the authoritative tables.
+
+| Unified source | Owner | LMS projection / use |
+|---|---|---|
+| `users`, `instructors`, `students` | Employee Management / Central Auth and Enrollment Management | `profiles`; authentication remains in LMS `users` |
+| `subjects` | Subject and Course Catalog | `subjects` |
+| `academic_periods`, `academic_classes`, `instructors` | Class Scheduling System | `classes` |
+| `fe_class_enrollments` | Enrollment Management System | `enrollments` |
+| `lms_*` teaching tables | LMS | Use only when deploying the unified database as the LMS content store; do not import them into an existing `lms_db` installation |
+
+The adapter uses stable `*_uid` values where available and deterministic prefixed source IDs otherwise. LMS-local UUIDs remain the foreign keys used by the application.
+
+## Recommended database upload/import order
+
+1. Import the shared identity and academic master tables from `ADFC_OneCampus_Unified_Schema.sql` on the database server.
+2. Create a dedicated read-only database account for the LMS with `SELECT` access to `adfc_onecampus` only.
+3. Import `database/schema.sql` into the LMS-owned `lms_db` database.
+4. Optionally import `database/seed.sql` only for demonstration data.
+5. Configure `ONECAMPUS_DB_HOST`, `ONECAMPUS_DB_PORT`, `ONECAMPUS_DB_NAME`, `ONECAMPUS_DB_USER`, and `ONECAMPUS_DB_PASS` on the PHP server.
+6. Sign in as an LMS administrator and run **Sync now**. The LMS updates `profiles`, `subjects`, `classes`, and `enrollments` without changing the source tables.
+
 ## Google Drive handoff
 
 Upload these non-sensitive files for programmers:

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -9,10 +9,11 @@ import {
   LockKeyhole,
   Mail,
   ShieldCheck,
+  Server,
   UserRound,
 } from 'lucide-react'
 import { pendingRoleCheckKey, roleLabels, type LoginPortal } from '../lib/auth'
-import { supabase } from '../lib/supabase'
+import { apiServerLabel, supabase } from '../lib/supabase'
 
 const portalDetails: Record<LoginPortal, { title: string; description: string; icon: typeof UserRound }> = {
   student: {
@@ -44,9 +45,18 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking')
   const message = (location.state as { message?: string } | null)?.message
   const details = portalDetails[portal]
   const PortalIcon = details.icon
+
+  useEffect(() => {
+    let active = true
+    void supabase.health().then(({ error: healthError }) => {
+      if (active) setServerStatus(healthError ? 'offline' : 'online')
+    })
+    return () => { active = false }
+  }, [])
 
   const selectPortal = (nextPortal: LoginPortal) => {
     setPortal(nextPortal)
@@ -138,6 +148,10 @@ export function LoginPage() {
 
       {message && <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{message}</div>}
       {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{error}</div>}
+      <div className={`mb-4 flex items-center gap-2 rounded-lg border p-3 text-xs font-semibold ${serverStatus === 'online' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : serverStatus === 'offline' ? 'border-red-200 bg-red-50 text-red-800' : 'border-slate-200 bg-slate-50 text-slate-600'}`} role="status">
+        <Server size={16} aria-hidden="true" />
+        <span>{serverStatus === 'online' ? 'Connected' : serverStatus === 'offline' ? 'Server unavailable' : 'Checking server'}: {apiServerLabel}</span>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <label className="field-label">
@@ -148,7 +162,7 @@ export function LoginPage() {
           <div className="mb-1.5 flex items-center justify-between gap-3"><label className="text-sm font-semibold text-slate-700" htmlFor="login-password">Password</label><Link className="text-sm font-bold text-brand-700 hover:text-brand-800" to={`/forgot-password?portal=${portal}`}>Forgot password?</Link></div>
           <span className="input-wrap"><LockKeyhole size={18} /><input id="login-password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" /><button type="button" className="icon-button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></span>
         </div>
-        <button className={`w-full ${portal === 'admin' ? 'admin-sign-in-button' : 'button-primary'}`} disabled={submitting}>
+        <button className={`w-full ${portal === 'admin' ? 'admin-sign-in-button' : 'button-primary'}`} disabled={submitting || serverStatus === 'offline'}>
           {submitting ? 'Signing in…' : `Sign in as ${roleLabels[portal]}`}
         </button>
       </form>

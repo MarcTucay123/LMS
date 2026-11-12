@@ -9,7 +9,7 @@ Web-based Learning Management System for Asian Development Foundation College.
 - MariaDB/MySQL database served by XAMPP
 - PHP session authentication and server-side role/class authorization
 - Private uploads stored in `D:\LMS\storage\uploads` and streamed through authorized API endpoints
-- OneCampus synchronization using `mock-onecampus/fixtures.json` by default, with optional remote API configuration
+- OneCampus synchronization from the unified MySQL/MariaDB database, a remote API, or `mock-onecampus/fixtures.json`
 - Read-only synchronized projections for external identity, course catalog, class scheduling, and enrollment data
 
 The browser compatibility client in `src/lib/supabase.ts` retains the former Supabase-style frontend calls, but all runtime requests now go to `public/api/index.php`.

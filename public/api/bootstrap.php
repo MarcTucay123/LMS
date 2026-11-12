@@ -29,6 +29,26 @@ function db(): PDO
     return $pdo;
 }
 
+function onecampus_db(): PDO
+{
+    static $pdo;
+    global $config;
+    if ($pdo instanceof PDO) return $pdo;
+    if ($config['onecampus_db_host'] === '') throw new RuntimeException('The OneCampus database connection is not configured.');
+    $dsn = sprintf(
+        'mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4',
+        $config['onecampus_db_host'],
+        $config['onecampus_db_port'],
+        $config['onecampus_db_name'],
+    );
+    $pdo = new PDO($dsn, $config['onecampus_db_user'], $config['onecampus_db_pass'], [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ]);
+    return $pdo;
+}
+
 function json_response(array $body = [], int $status = 200): never
 {
     http_response_code($status);

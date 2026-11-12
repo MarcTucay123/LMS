@@ -12,6 +12,11 @@ $config = [
     'app_url' => rtrim(getenv('LMS_APP_URL') ?: 'http://localhost/lms', '/'),
     'onecampus_api_url' => trim(getenv('ONECAMPUS_API_URL') ?: ''),
     'onecampus_api_key' => getenv('ONECAMPUS_API_KEY') ?: '',
+    'onecampus_db_host' => trim(getenv('ONECAMPUS_DB_HOST') ?: ''),
+    'onecampus_db_port' => getenv('ONECAMPUS_DB_PORT') ?: '3306',
+    'onecampus_db_name' => getenv('ONECAMPUS_DB_NAME') ?: 'adfc_onecampus',
+    'onecampus_db_user' => getenv('ONECAMPUS_DB_USER') ?: '',
+    'onecampus_db_pass' => getenv('ONECAMPUS_DB_PASS') ?: '',
     'project_root' => $projectRoot,
     'storage_path' => $projectRoot . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'uploads',
 ];

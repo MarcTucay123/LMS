@@ -18,6 +18,7 @@ $action = (string)($request['action'] ?? '');
 
 try {
     match ($action) {
+        'system.health' => system_health(),
         'auth.session' => json_response(['session' => session_payload()]),
         'auth.login' => auth_login($request),
         'auth.logout' => auth_logout(),
@@ -35,6 +36,16 @@ try {
     error_log((string)$error);
     if (unique_violation($error)) fail('A record with the same identifying information already exists.', 409);
     fail('The server could not complete the request.', 500);
+}
+
+function system_health(): never
+{
+    db()->query('SELECT 1')->fetchColumn();
+    json_response([
+        'status' => 'ok',
+        'database' => 'connected',
+        'server_time' => (new DateTimeImmutable())->format(DATE_ATOM),
+    ]);
 }
 
 function auth_login(array $request): never
@@ -555,18 +566,69 @@ function activate_account(array $body): never
 
 function sync_onecampus(): never
 {
-    global $config;$admin=require_admin();$source=$config['onecampus_api_url']!==''?'onecampus_api':'mock';$logId=uuid();db()->prepare("INSERT INTO sync_logs (id,initiated_by,source,status,records) VALUES (?,?,?,'running','{}')")->execute([$logId,$admin['id'],$source]);
+    global $config;$admin=require_admin();$source=$config['onecampus_db_host']!==''?'onecampus_database':($config['onecampus_api_url']!==''?'onecampus_api':'mock');$logId=uuid();db()->prepare("INSERT INTO sync_logs (id,initiated_by,source,status,records) VALUES (?,?,?,'running','{}')")->execute([$logId,$admin['id'],$source]);
     try{
-        if($source==='mock'){$json=file_get_contents($config['project_root'].DIRECTORY_SEPARATOR.'mock-onecampus'.DIRECTORY_SEPARATOR.'fixtures.json');}
-        else{$headers="Accept: application/json\r\nAuthorization: Bearer {$config['onecampus_api_key']}\r\nX-API-Key: {$config['onecampus_api_key']}\r\n";$json=file_get_contents($config['onecampus_api_url'],false,stream_context_create(['http'=>['header'=>$headers,'timeout'=>30]]));}
-        $payload=json_decode((string)$json,true);if(!is_array($payload)||!isset($payload['users'],$payload['subjects'],$payload['classes'],$payload['enrollments']))throw new RuntimeException('OneCampus returned an invalid payload.');
+        if($source==='onecampus_database'){$payload=onecampus_database_payload();}
+        else{if($source==='mock'){$json=file_get_contents($config['project_root'].DIRECTORY_SEPARATOR.'mock-onecampus'.DIRECTORY_SEPARATOR.'fixtures.json');}else{$headers="Accept: application/json\r\nAuthorization: Bearer {$config['onecampus_api_key']}\r\nX-API-Key: {$config['onecampus_api_key']}\r\n";$json=file_get_contents($config['onecampus_api_url'],false,stream_context_create(['http'=>['header'=>$headers,'timeout'=>30]]));}$payload=json_decode((string)$json,true);}
+        if(!is_array($payload)||!isset($payload['users'],$payload['subjects'],$payload['classes'],$payload['enrollments']))throw new RuntimeException('OneCampus returned an invalid payload.');
         $pdo=db();$pdo->beginTransaction();$profileMap=[];$subjectMap=[];$classMap=[];
         foreach($payload['users'] as $item){$email=strtolower(trim($item['email']));$find=$pdo->prepare('SELECT id FROM profiles WHERE onecampus_user_id=? OR LOWER(email)=? LIMIT 1');$find->execute([$item['id'],$email]);$id=$find->fetchColumn()?:uuid();$exists=$pdo->prepare('SELECT id FROM users WHERE id=?');$exists->execute([$id]);if(!$exists->fetchColumn())$pdo->prepare('INSERT INTO users (id,email,password_hash,requested_role) VALUES (?,?,?,?)')->execute([$id,$email,password_hash(bin2hex(random_bytes(24)),PASSWORD_DEFAULT),$item['role']]);$owner=$item['role']==='instructor'?'employee_management':($item['role']==='student'?'enrollment_management':'onecampus');$pdo->prepare('INSERT INTO profiles (id,onecampus_user_id,source_system,synced_at,school_id,email,full_name,role,status) VALUES (?,?,?,NOW(),?,?,?,?,?) ON DUPLICATE KEY UPDATE onecampus_user_id=VALUES(onecampus_user_id),source_system=VALUES(source_system),synced_at=NOW(),school_id=VALUES(school_id),email=VALUES(email),full_name=VALUES(full_name),role=VALUES(role),status=VALUES(status)')->execute([$id,$item['id'],$owner,$item['schoolId'],$email,$item['fullName'],$item['role'],$item['status']]);$pdo->prepare('INSERT INTO activation_records (id,onecampus_user_id,school_id,email,full_name,role,auth_user_id,activated_at) VALUES (?,?,?,?,?,?,?,IF(?=\'active\',NOW(),NULL)) ON DUPLICATE KEY UPDATE school_id=VALUES(school_id),email=VALUES(email),full_name=VALUES(full_name),role=VALUES(role),auth_user_id=VALUES(auth_user_id)')->execute([uuid(),$item['id'],$item['schoolId'],$email,$item['fullName'],$item['role'],$id,$item['status']]);$profileMap[$item['id']]=$id;}
         foreach($payload['subjects'] as $item){$find=$pdo->prepare('SELECT id FROM subjects WHERE onecampus_subject_id=?');$find->execute([$item['id']]);$id=$find->fetchColumn()?:uuid();$pdo->prepare('INSERT INTO subjects (id,onecampus_subject_id,source_system,synced_at,code,title,description) VALUES (?,?,\'course_catalog\',NOW(),?,?,?) ON DUPLICATE KEY UPDATE source_system=VALUES(source_system),synced_at=NOW(),code=VALUES(code),title=VALUES(title),description=VALUES(description)')->execute([$id,$item['id'],$item['code'],$item['title'],$item['description']??null]);$subjectMap[$item['id']]=$id;}
         foreach($payload['classes'] as $item){$find=$pdo->prepare('SELECT id FROM classes WHERE onecampus_class_id=?');$find->execute([$item['id']]);$id=$find->fetchColumn()?:uuid();$pdo->prepare('INSERT INTO classes (id,onecampus_class_id,source_system,synced_at,subject_id,instructor_id,section,school_year,semester,status) VALUES (?,?,\'class_scheduling\',NOW(),?,?,?,?,?,?) ON DUPLICATE KEY UPDATE source_system=VALUES(source_system),synced_at=NOW(),subject_id=VALUES(subject_id),instructor_id=VALUES(instructor_id),section=VALUES(section),school_year=VALUES(school_year),semester=VALUES(semester),status=VALUES(status)')->execute([$id,$item['id'],$subjectMap[$item['subjectId']],$profileMap[$item['instructorId']],$item['section'],$item['schoolYear'],$item['semester'],$item['status']]);$classMap[$item['id']]=$id;}
         foreach($payload['enrollments'] as $item){$pdo->prepare('INSERT INTO enrollments (id,onecampus_enrollment_id,source_system,synced_at,class_id,student_id,status) VALUES (?,?,\'enrollment_management\',NOW(),?,?,?) ON DUPLICATE KEY UPDATE source_system=VALUES(source_system),synced_at=NOW(),class_id=VALUES(class_id),student_id=VALUES(student_id),status=VALUES(status)')->execute([uuid(),$item['id'],$classMap[$item['classId']],$profileMap[$item['studentId']],$item['status']]);}
-        $counts=['users'=>count($payload['users']),'subjects'=>count($payload['subjects']),'classes'=>count($payload['classes']),'enrollments'=>count($payload['enrollments'])];$pdo->prepare("UPDATE sync_logs SET status='success',records=?,message=?,completed_at=NOW() WHERE id=?")->execute([json_encode($counts),'Synchronization completed using '.($source==='mock'?'mock fixtures.':'OneCampus API.'),$logId]);$pdo->commit();json_response(['message'=>'OneCampus synchronization completed.','source'=>$source,'counts'=>$counts]);
+        $counts=['users'=>count($payload['users']),'subjects'=>count($payload['subjects']),'classes'=>count($payload['classes']),'enrollments'=>count($payload['enrollments'])];$sourceLabel=$source==='mock'?'mock fixtures':($source==='onecampus_database'?'the unified OneCampus database':'the OneCampus API');$pdo->prepare("UPDATE sync_logs SET status='success',records=?,message=?,completed_at=NOW() WHERE id=?")->execute([json_encode($counts),'Synchronization completed using '.$sourceLabel.'.',$logId]);$pdo->commit();json_response(['message'=>'OneCampus synchronization completed.','source'=>$source,'counts'=>$counts]);
     }catch(Throwable $error){if(db()->inTransaction())db()->rollBack();db()->prepare("UPDATE sync_logs SET status='failed',message=?,completed_at=NOW() WHERE id=?")->execute([$error->getMessage(),$logId]);throw $error;}
+}
+
+function onecampus_database_payload(): array
+{
+    $source = onecampus_db();
+    $users = $source->query("SELECT
+        COALESCE(u.user_uid, CONCAT('USER-', u.user_id)) AS id,
+        LOWER(u.email) AS email,
+        u.full_name AS fullName,
+        COALESCE(s.student_number, i.employee_number, u.username, u.user_uid, CONCAT('USER-', u.user_id)) AS schoolId,
+        CASE
+            WHEN LOWER(u.role) LIKE '%admin%' THEN 'admin'
+            WHEN LOWER(u.role) LIKE '%instructor%' OR LOWER(u.role) LIKE '%faculty%' OR LOWER(u.role) LIKE '%teacher%' THEN 'instructor'
+            ELSE 'student'
+        END AS role,
+        CASE WHEN u.status = 'Active' THEN 'active' ELSE 'inactive' END AS status
+      FROM users u
+      LEFT JOIN students s ON s.student_id = u.student_id
+      LEFT JOIN instructors i ON i.user_id = u.user_id
+      WHERE u.email IS NOT NULL AND u.email <> ''")->fetchAll();
+    $subjects = $source->query("SELECT
+        COALESCE(subject_uid, CONCAT('SUBJECT-', subject_id)) AS id,
+        subject_code AS code,
+        subject_title AS title,
+        description
+      FROM subjects
+      WHERE status = 'Active'")->fetchAll();
+    $classes = $source->query("SELECT
+        COALESCE(c.class_uid, CONCAT('CLASS-', c.class_id)) AS id,
+        COALESCE(s.subject_uid, CONCAT('SUBJECT-', s.subject_id)) AS subjectId,
+        COALESCE(u.user_uid, CONCAT('USER-', u.user_id)) AS instructorId,
+        COALESCE(c.section, c.class_code) AS section,
+        p.academic_year AS schoolYear,
+        CASE p.semester WHEN '1st' THEN 'First Semester' WHEN '2nd' THEN 'Second Semester' ELSE 'Summer' END AS semester,
+        CASE WHEN LOWER(c.status) = 'active' THEN 'active' ELSE 'archived' END AS status
+      FROM academic_classes c
+      JOIN subjects s ON s.subject_id = c.subject_id
+      JOIN academic_periods p ON p.period_id = c.period_id
+      JOIN instructors i ON i.instructor_id = c.instructor_id
+      JOIN users u ON u.user_id = i.user_id
+      WHERE c.class_uid IS NOT NULL OR c.class_id IS NOT NULL")->fetchAll();
+    $enrollments = $source->query("SELECT
+        CONCAT('FE-ENROLLMENT-', e.enrollment_id) AS id,
+        COALESCE(c.class_uid, CONCAT('CLASS-', c.class_id)) AS classId,
+        COALESCE(u.user_uid, CONCAT('USER-', u.user_id)) AS studentId,
+        CASE e.enrollment_status WHEN 'ACTIVE' THEN 'enrolled' WHEN 'COMPLETED' THEN 'completed' ELSE 'dropped' END AS status
+      FROM fe_class_enrollments e
+      JOIN academic_classes c ON c.class_id = e.class_id
+      JOIN students s ON s.student_id = e.student_id
+      JOIN users u ON u.student_id = s.student_id")->fetchAll();
+    return compact('users', 'subjects', 'classes', 'enrollments');
 }
 
 function storage_upload(array $request): never
