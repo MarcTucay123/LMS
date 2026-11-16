@@ -9,4 +9,5 @@ api/config.local.php
 api/onecampus.setup.php
 storage/uploads
 database/exports
+database/adfc_onecampus_updated (1).sql
 ~$*.docx

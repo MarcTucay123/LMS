@@ -1,0 +1,25 @@
+{
+  "name": "Learning Management System",
+  "block": 1,
+  "group": "",
+  "status": "in-progress",
+  "members": [
+    ""
+  ],
+  "code": "LMS",
+  "url": "http://192.168.109.152/b1-learning-management/",
+  "tables": [
+    "learning_assignments",
+    "learning_discussion_posts",
+    "learning_discussion_topics",
+    "learning_materials",
+    "learning_registration_classes",
+    "learning_registration_requests",
+    "learning_sync_logs",
+    "quizzes",
+    "quiz_answer_keys",
+    "quiz_attempts",
+    "quiz_questions",
+    "assignment_submissions"
+  ]
+}

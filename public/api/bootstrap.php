@@ -7,7 +7,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_name('adfc_lms_session');
     session_set_cookie_params([
         'lifetime' => 0,
-        'path' => '/lms/',
+        'path' => rtrim((string)$config['app_path'], '/') . '/',
         'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
         'httponly' => true,
         'samesite' => 'Lax',
@@ -17,16 +17,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 
 function db(): PDO
 {
-    static $pdo;
-    global $config;
-    if ($pdo instanceof PDO) return $pdo;
-    $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $config['db_host'], $config['db_port'], $config['db_name']);
-    $pdo = new PDO($dsn, $config['db_user'], $config['db_pass'], [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false,
-    ]);
-    return $pdo;
+    return onecampus_db();
 }
 
 function onecampus_connection_config(): array
@@ -122,7 +113,13 @@ function session_payload(): ?array
 {
     $id = current_user_id();
     if (!$id) return null;
-    $stmt = db()->prepare('SELECT id,email,requested_role FROM users WHERE id=?');
+    $stmt = db()->prepare("SELECT CAST(u.user_id AS CHAR) id,LOWER(u.email) email,
+        CASE WHEN EXISTS (
+            SELECT 1 FROM user_access_roles uar
+            JOIN access_roles ar ON ar.role_id=uar.role_id
+            WHERE uar.user_id=u.user_id AND uar.module_code='lms' AND LOWER(ar.role_name) LIKE '%admin%'
+        ) THEN 'admin' WHEN i.instructor_id IS NOT NULL THEN 'instructor' ELSE 'student' END requested_role
+        FROM users u LEFT JOIN instructors i ON i.user_id=u.user_id WHERE u.user_id=?");
     $stmt->execute([$id]);
     $user = $stmt->fetch();
     if (!$user) return null;
@@ -133,7 +130,20 @@ function require_user(): array
 {
     $id = current_user_id();
     if (!$id) fail('Authentication is required.', 401);
-    $stmt = db()->prepare('SELECT u.id,u.email,u.requested_role,p.role,p.status,p.full_name FROM users u LEFT JOIN profiles p ON p.id=u.id WHERE u.id=?');
+    $stmt = db()->prepare("SELECT CAST(u.user_id AS CHAR) id,LOWER(u.email) email,
+        CASE WHEN EXISTS (
+            SELECT 1 FROM user_access_roles uar
+            JOIN access_roles ar ON ar.role_id=uar.role_id
+            WHERE uar.user_id=u.user_id AND uar.module_code='lms' AND LOWER(ar.role_name) LIKE '%admin%'
+        ) THEN 'admin' WHEN i.instructor_id IS NOT NULL THEN 'instructor' ELSE 'student' END requested_role,
+        CASE WHEN EXISTS (
+            SELECT 1 FROM user_access_roles uar
+            JOIN access_roles ar ON ar.role_id=uar.role_id
+            WHERE uar.user_id=u.user_id AND uar.module_code='lms' AND LOWER(ar.role_name) LIKE '%admin%'
+        ) THEN 'admin' WHEN i.instructor_id IS NOT NULL THEN 'instructor' ELSE 'student' END role,
+        CASE WHEN u.status='Active' THEN 'active' ELSE 'inactive' END status,u.full_name,u.user_uid,
+        u.student_id,i.instructor_id
+        FROM users u LEFT JOIN instructors i ON i.user_id=u.user_id WHERE u.user_id=?");
     $stmt->execute([$id]);
     $user = $stmt->fetch();
     if (!$user) fail('Invalid session.', 401);
@@ -159,12 +169,12 @@ function class_access(string $classId, ?array $user = null): bool
     $user ??= require_active_user();
     if ($user['role'] === 'admin') return true;
     if ($user['role'] === 'instructor') {
-        $stmt = db()->prepare('SELECT 1 FROM classes WHERE id=? AND instructor_id=?');
-        $stmt->execute([$classId, $user['id']]);
+        $stmt = db()->prepare('SELECT 1 FROM academic_classes WHERE class_uid=? AND instructor_id=?');
+        $stmt->execute([$classId, $user['instructor_id']]);
         return (bool)$stmt->fetchColumn();
     }
-    $stmt = db()->prepare("SELECT 1 FROM enrollments WHERE class_id=? AND student_id=? AND status='enrolled'");
-    $stmt->execute([$classId, $user['id']]);
+    $stmt = db()->prepare("SELECT 1 FROM class_enrollments e JOIN academic_classes c ON c.class_id=e.class_id WHERE c.class_uid=? AND e.student_id=? AND e.membership_status='Active'");
+    $stmt->execute([$classId, $user['student_id']]);
     return (bool)$stmt->fetchColumn();
 }
 
@@ -172,8 +182,8 @@ function class_manage(string $classId, ?array $user = null): bool
 {
     $user ??= require_active_user();
     if ($user['role'] !== 'instructor') return false;
-    $stmt = db()->prepare('SELECT 1 FROM classes WHERE id=? AND instructor_id=?');
-    $stmt->execute([$classId, $user['id']]);
+    $stmt = db()->prepare('SELECT 1 FROM academic_classes WHERE class_uid=? AND instructor_id=?');
+    $stmt->execute([$classId, $user['instructor_id']]);
     return (bool)$stmt->fetchColumn();
 }
 

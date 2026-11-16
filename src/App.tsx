@@ -11,11 +11,9 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
 import { OneCampusSetupPage } from './pages/OneCampusSetupPage'
 import { NotFoundPage } from './pages/NotFoundPage'
-import { RegisterPage } from './pages/RegisterPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { WorkspacePage } from './pages/WorkspacePage'
 import { AdminClassesPage } from './pages/admin/AdminClassesPage'
-import { AdminRegistrationsPage } from './pages/admin/AdminRegistrationsPage'
 import { AdminSyncPage } from './pages/admin/AdminSyncPage'
 import { AdminUsersPage } from './pages/admin/AdminUsersPage'
 
@@ -31,9 +29,9 @@ export default function App() {
             <Route element={<AuthLayout />}>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/register/:role" element={<RegisterPage />} />
-              <Route path="/register" element={<Navigate to="/register/student" replace />} />
-              <Route path="/activate" element={<Navigate to="/register/student" replace />} />
+              <Route path="/register/:role" element={<Navigate to="/login" replace />} />
+              <Route path="/register" element={<Navigate to="/login" replace />} />
+              <Route path="/activate" element={<Navigate to="/login" replace />} />
             </Route>
           </Route>
           <Route element={<AuthLayout />}>
@@ -47,7 +45,7 @@ export default function App() {
               <Route path="/workspace/:section" element={<WorkspacePage />} />
               <Route element={<RoleRoute allowed={['admin']} />}>
                 <Route path="/admin/users" element={<AdminUsersPage />} />
-                <Route path="/admin/registrations" element={<AdminRegistrationsPage />} />
+                <Route path="/admin/registrations" element={<Navigate to="/admin/users" replace />} />
                 <Route path="/admin/classes" element={<AdminClassesPage />} />
                 <Route path="/admin/sync" element={<AdminSyncPage />} />
               </Route>

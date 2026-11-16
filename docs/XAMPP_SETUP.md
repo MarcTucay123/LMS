@@ -1,6 +1,6 @@
 # XAMPP deployment guide
 
-This guide deploys the LMS from `D:\LMS` at `http://localhost/lms/` using XAMPP Apache, PHP, and MariaDB.
+This guide deploys the LMS at `http://SERVER_IP/b1-learning-management/` using XAMPP Apache/PHP and the unified `adfc_onecampus` database.
 
 ## 1. Requirements
 
@@ -11,96 +11,73 @@ This guide deploys the LMS from `D:\LMS` at `http://localhost/lms/` using XAMPP 
 
 The checked XAMPP environment uses MariaDB 10.4.32. Apache must have `mod_rewrite` enabled and permit `.htaccess` overrides for `htdocs`.
 
-## 2. Install and validate the frontend
+## 2. Clone and create the working XAMPP deployment
 
 ```powershell
-cd D:\LMS
-npm install
-npm run lint
-npm run build
+cd C:\xampp\htdocs
+git clone https://github.com/MarcTucay123/LMS.git LMS
+Set-ExecutionPolicy -Scope Process Bypass
+& C:\xampp\htdocs\LMS\scripts\setup-xampp.ps1
 ```
 
-Vite copies `public/.htaccess` and `public/api` into `D:\LMS\dist`, so the production build contains both the SPA and PHP API.
+The repository is physically stored at `C:\xampp\htdocs\LMS`. The script runs
+`npm ci`, builds the ignored `dist` directory, and creates
+`C:\xampp\htdocs\b1-learning-management` as a junction to the repository.
+
+Git stores the source code and deployment script. It does not store
+`node_modules`, `dist`, the Windows junction, private database setup files, or
+uploaded files. Those are recreated on each server.
 
 ## 3. Configure the PHP API
 
-Defaults in `public/api/config.php` work with a standard local XAMPP installation:
+The school deployment uses the existing shared database connection:
 
 ```text
-database: lms_db
-host:     127.0.0.1
+database: adfc_onecampus
+host:     192.168.109.117
 port:     3306
-user:     root
-password: empty
-app URL:  http://localhost/lms
+user:     onecampus
+password: supplied OneCampus password
+app URL:  detected from the current server host and /b1-learning-management path
 ```
 
-For overrides, copy the example outside the public web root:
+For a private file override, copy the ignored example:
 
 ```powershell
-Copy-Item D:\LMS\api\config.local.example.php D:\LMS\api\config.local.php
+Copy-Item C:\xampp\htdocs\LMS\api\config.local.example.php C:\xampp\htdocs\LMS\api\config.local.php
 ```
 
-Edit `D:\LMS\api\config.local.php` as needed. It is ignored by Git. Environment variables `LMS_DB_HOST`, `LMS_DB_PORT`, `LMS_DB_NAME`, `LMS_DB_USER`, `LMS_DB_PASS`, `LMS_APP_URL`, `ONECAMPUS_API_URL`, `ONECAMPUS_API_KEY`, `ONECAMPUS_DB_HOST`, `ONECAMPUS_DB_PORT`, `ONECAMPUS_DB_NAME`, `ONECAMPUS_DB_USER`, and `ONECAMPUS_DB_PASS` are also supported.
+Edit `C:\xampp\htdocs\LMS\api\config.local.php` as needed. It is ignored by Git. The preferred deployment method is the `/b1-learning-management/setup` screen.
 
-Synchronization source priority is: unified OneCampus database when `ONECAMPUS_DB_HOST` is set, OneCampus API when `ONECAMPUS_API_URL` is set, then `D:\LMS\mock-onecampus\fixtures.json`.
-
-For a database server on another computer, place its LAN IP in the private PHP configuration, for example:
-
-```php
-'onecampus_db_host' => '192.168.109.211',
-'onecampus_db_name' => 'adfc_onecampus',
-'onecampus_db_user' => 'adfc_subsystems',
-'onecampus_db_pass' => '',
-```
+On the setup screen enter host `192.168.109.117`, port `3306`, database
+`adfc_onecampus`, username `onecampus`, and the supplied password.
 
 For local testing when XAMPP/MariaDB and `adfc_onecampus` are on the same computer, use `127.0.0.1`. The setup page provides **This PC (home)** and **School server** shortcuts. `127.0.0.1` always means the computer running the LMS PHP API; it cannot reach the school database from home unless that database also exists locally.
 
 Do not place MySQL credentials in any `VITE_*` variable. The pre-login setup form sends the connection details to PHP over the current LMS origin; PHP retains them in the server-side session and performs the database connection.
 
-LAN users should open the LMS through the Apache server address, for example `http://192.168.1.10/lms/`. Keep `VITE_API_URL=/lms/api/index.php` so login and PHP session cookies remain on the same origin.
+LAN users open the LMS at `http://192.168.109.152/b1-learning-management/`. Keep API requests relative so login and PHP session cookies remain on the same origin.
 
-If the shared ADFC application server is `192.168.109.211` and Apache maps `/lms` to this project's `dist` directory, the LMS address is `http://192.168.109.211/lms/` (Apache on Windows also normally accepts `/LMS/`). This is separate from paths such as `/billing-system/` and `/adfc-kiosk/`.
+The dashboard reads the LMS `subsystem.json`, whose school URL is `http://192.168.109.152/b1-learning-management/`.
 
-Before login, `/lms/setup` asks for the database host, port, database name, `adfc_subsystems` username, and its current database password (blank when no password is configured). **Verify OneCampus and finish setup** verifies the unified tables and writes the verified database connection to the private `api/onecampus.setup.php` file. A successful connection displays a confirmation modal with the verified server details; selecting **Continue to login** opens the LMS login page. Setup does not create or change an LMS account password. After setup, the login page provides a **Back to database setup/status** button. The setup page then shows green when the saved OneCampus connection is reachable and red when it is unavailable, with **Check connection again** and **Disconnect** actions. Disconnect requires confirmation, deletes only `C:\xampp\htdocs\LMS\api\onecampus.setup.php`, clears the temporary connection session, and returns to the editable setup form. Once the first administrator exists, only an authenticated active LMS administrator can disconnect.
+Before login, `/b1-learning-management/setup` verifies the unified tables and
+writes the connection to private `api/onecampus.setup.php`. That file is ignored
+by Git. Do not copy the home version to school if it contains `127.0.0.1`.
 
-The LMS still requires its own `lms_db` because the shared `adfc_onecampus` tables use a different identity and academic schema. Do not overwrite `adfc_onecampus.users`, `announcements`, or `enrollments` with the LMS schema. After importing `database/schema.sql` into `lms_db`, open `/lms/register/admin` to create the first administrator. That account is active immediately; public administrator registration closes as soon as one administrator profile exists.
+The LMS does not require `lms_db`. On `192.168.109.152`, start Apache only. MySQL
+runs on `192.168.109.117`.
 
-## 4. Start and import MariaDB
+## 4. Prepare the shared database
 
-Start MySQL/MariaDB in the XAMPP Control Panel, then import the schema and seed:
+Back up `adfc_onecampus` on `192.168.109.117`, then import
+`database/migrate_adfc_onecampus_lms_20261117/IMPORT_THIS_IN_PHPMYADMIN.sql` if
+the migration has not already been applied. Do not create another MySQL user.
 
-```powershell
-& C:\xampp\mysql\bin\mysql.exe -u root -e "source D:/LMS/database/schema.sql; source D:/LMS/database/seed.sql;"
-```
+## 5. Verify Apache deployment
 
-`database/schema.sql` drops and recreates the LMS tables. Do not run it against a database containing data that must be retained.
+Start Apache in the XAMPP Control Panel and open `http://localhost/b1-learning-management/` locally or `http://192.168.109.152/b1-learning-management/` from another PC.
 
-For an existing database, apply the non-destructive ownership migration instead:
-
-```powershell
-& C:\xampp\mysql\bin\mysql.exe -u root lms_db -e "source D:/LMS/database/migrations/20261110_academic_data_ownership.sql;"
-```
-
-Verify the import:
-
-```powershell
-& C:\xampp\mysql\bin\mysql.exe -u root lms_db -e "SHOW TABLES; SELECT email, role, status FROM profiles;"
-```
-
-## 5. Create the Apache deployment junction
-
-Run PowerShell with permission to create the junction:
-
-```powershell
-New-Item -ItemType Junction -Path C:\xampp\htdocs\lms -Target D:\LMS\dist
-```
-
-If `C:\xampp\htdocs\lms` already exists, verify or remove that specific target before creating the junction. Never point Apache directly at `D:\LMS`, because `database`, configuration, and private upload files must remain outside the public web root.
-
-Start Apache in the XAMPP Control Panel and open `http://localhost/lms/`.
-
-Direct SPA routes such as `http://localhost/lms/dashboard` are handled by `dist/.htaccess`. API requests are excluded from the SPA rewrite.
+Direct SPA routes are handled by the repository-root `.htaccess`, which serves the compiled `dist` application and PHP API.
 
 ## 6. Demo credentials
 

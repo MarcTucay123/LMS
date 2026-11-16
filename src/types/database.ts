@@ -319,14 +319,6 @@ export interface Database {
         }
         Returns: Database['public']['Tables']['profiles']['Row']
       }
-      admin_approve_registration: {
-        Args: { target_application_id: string }
-        Returns: Database['public']['Tables']['profiles']['Row']
-      }
-      admin_reject_registration: {
-        Args: { target_application_id: string }
-        Returns: Database['public']['Tables']['registration_applications']['Row']
-      }
       current_user_role: { Args: Record<string, never>; Returns: UserRole }
       is_admin: { Args: Record<string, never>; Returns: boolean }
       is_active_admin: { Args: Record<string, never>; Returns: boolean }

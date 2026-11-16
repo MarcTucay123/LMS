@@ -2,19 +2,20 @@
 declare(strict_types=1);
 
 return [
-    'db_host' => '127.0.0.1',
+    // Unified deployment: the LMS uses the existing adfc_onecampus connection.
+    'db_host' => '192.168.109.117',
     'db_port' => '3306',
-    'db_name' => 'lms_db',
-    'db_user' => 'root',
-    'db_pass' => '',
-    'app_url' => 'http://localhost/lms',
+    'db_name' => 'adfc_onecampus',
+    'db_user' => 'onecampus',
+    'db_pass' => 'ENTER_EXISTING_DATABASE_PASSWORD',
+    'app_url' => 'http://192.168.109.152/b1-learning-management',
     'onecampus_api_url' => '',
     'onecampus_api_key' => '',
-    // Optional read-only connection to database/adfc_onecampus.sql.
-    // Default host; the login page may test and select a private LAN IP for the current PHP session.
-    'onecampus_db_host' => '192.168.109.211',
+    // Existing school OneCampus database access. No MySQL user is created by
+    // this LMS package.
+    'onecampus_db_host' => '192.168.109.117',
     'onecampus_db_port' => '3306',
     'onecampus_db_name' => 'adfc_onecampus',
-    'onecampus_db_user' => 'adfc_lms',
-    'onecampus_db_pass' => '',
+    'onecampus_db_user' => 'onecampus',
+    'onecampus_db_pass' => 'ENTER_EXISTING_DATABASE_PASSWORD',
 ];

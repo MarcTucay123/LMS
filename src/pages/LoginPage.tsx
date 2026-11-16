@@ -73,7 +73,7 @@ export function LoginPage() {
     event.preventDefault()
     setError(null)
     if (!email.trim() || !password) {
-      setError('Enter your email and password.')
+      setError('Enter your username or email and password.')
       return
     }
 
@@ -98,9 +98,7 @@ export function LoginPage() {
     if (profileError || !profile) {
       await supabase.auth.signOut()
       setSubmitting(false)
-      setError(signInData.user.user_metadata?.requested_role
-        ? 'Your registration is awaiting administrator approval.'
-        : 'No LMS profile is linked to this account. Contact an administrator.')
+      setError('Your active OneCampus profile could not be loaded. Contact the administrator of the main OneCampus system.')
       return
     }
     if (profile.status !== 'active') {
@@ -158,8 +156,8 @@ export function LoginPage() {
 
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <label className="field-label">
-          Email address
-          <span className="input-wrap"><Mail size={18} /><input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Enter your registered email" /></span>
+          Username or email address
+          <span className="input-wrap"><Mail size={18} /><input type="text" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Enter your username or registered email" /></span>
         </label>
         <div>
           <div className="mb-1.5 flex items-center justify-between gap-3"><label className="text-sm font-semibold text-slate-700" htmlFor="login-password">Password</label><Link className="text-sm font-bold text-brand-700 hover:text-brand-800" to={`/forgot-password?portal=${portal}`}>Forgot password?</Link></div>
@@ -177,7 +175,8 @@ export function LoginPage() {
       )}
 
       <div className="mt-6 border-t border-slate-100 pt-5 text-center">
-        {portal === 'admin' ? <><p className="text-sm text-slate-600">Setting up a new LMS? <Link className="font-bold text-brand-700 hover:text-brand-800" to="/register/admin">Create the first administrator</Link></p><p className="mt-2 text-xs text-slate-400">This option closes automatically after the first administrator account is created.</p></> : <><p className="text-sm text-slate-600">Don&apos;t have an account? <Link className="font-bold text-brand-700 hover:text-brand-800" to={`/register/${portal}`}>Register as {roleLabels[portal]}</Link></p><p className="mt-2 text-xs text-slate-400">This form creates a pending {roleLabels[portal].toLowerCase()} application for administrator approval.</p></>}
+        <p className="text-sm text-slate-600">Accounts and access status are managed by the main ADFC OneCampus system.</p>
+        <p className="mt-2 text-xs text-slate-400">Employee and instructor records come from Employee Management. Student access and class membership come from the official student and enrollment records.</p>
         <Link className="button-secondary mt-4 w-full" to="/setup"><Server size={17} /> Back to database setup/status</Link>
       </div>
     </>

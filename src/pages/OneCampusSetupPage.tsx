@@ -1,7 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, CircleCheckBig, CircleX, Database, Eye, EyeOff, LoaderCircle, LockKeyhole, Network, RefreshCw, Server, Unplug, UserRound } from 'lucide-react'
-import { useAuth } from '../hooks/useAuth'
 import { useOneCampusSetup } from '../hooks/useOneCampusSetup'
 import { supabase } from '../lib/supabase'
 
@@ -17,14 +16,13 @@ interface ConnectionStatus {
 export function OneCampusSetupPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { user, profile, loading: authLoading } = useAuth()
   const { refresh } = useOneCampusSetup()
   const [status, setStatus] = useState<ConnectionStatus | null>(null)
   const [checking, setChecking] = useState(true)
-  const [host, setHost] = useState('192.168.109.211')
+  const [host, setHost] = useState('192.168.109.117')
   const [port, setPort] = useState('3306')
   const [database, setDatabase] = useState('adfc_onecampus')
-  const [username, setUsername] = useState('adfc_subsystems')
+  const [username, setUsername] = useState('onecampus')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -38,7 +36,7 @@ export function OneCampusSetupPage() {
     database: string
     username: string
   } | null>(null)
-  const disconnectRequested = searchParams.get('action') === 'disconnect' && profile?.role === 'admin'
+  const disconnectRequested = searchParams.get('action') === 'disconnect'
 
   const checkStatus = async () => {
     setChecking(true)
@@ -87,14 +85,6 @@ export function OneCampusSetupPage() {
     const savedStatus = status
     const { data, error: disconnectError } = await supabase.disconnectOneCampus()
     if (disconnectError || !data?.disconnected) {
-      if (disconnectError?.message === 'Authentication is required.') {
-        setDisconnecting(false)
-        setConfirmDisconnect(false)
-        navigate('/login?portal=admin&returnTo=%2Fsetup%3Faction%3Ddisconnect', {
-          state: { message: 'Sign in as an administrator to disconnect the saved OneCampus database.' },
-        })
-        return
-      }
       setError(disconnectError?.message ?? 'The saved OneCampus connection could not be disconnected.')
       setDisconnecting(false)
       setConfirmDisconnect(false)
@@ -115,17 +105,6 @@ export function OneCampusSetupPage() {
 
   const requestDisconnect = () => {
     setError(null)
-    if (authLoading) return
-    if (!user) {
-      navigate('/login?portal=admin&returnTo=%2Fsetup%3Faction%3Ddisconnect', {
-        state: { message: 'Sign in as an administrator to disconnect the saved OneCampus database.' },
-      })
-      return
-    }
-    if (profile?.role !== 'admin') {
-      setError('Only an active administrator can disconnect the saved OneCampus database. Sign out and use an administrator account.')
-      return
-    }
     setConfirmDisconnect(true)
   }
 
@@ -177,21 +156,21 @@ export function OneCampusSetupPage() {
 
             <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-900">
               <p className="font-extrabold">Disconnect or change the saved database</p>
-              <p className="mt-1">Disconnecting deletes only the private saved connection file. It does not delete LMS or OneCampus data. After the first administrator exists, an active administrator session is required.</p>
-              <button type="button" className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-red-300 bg-white px-4 font-bold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto" onClick={requestDisconnect} disabled={disconnecting || authLoading}>
-                <Unplug size={17} /> {authLoading ? 'Checking access…' : 'Disconnect'}
+              <p className="mt-1">Disconnecting deletes only the private saved connection file. It does not delete LMS or OneCampus data, and no administrator login is required.</p>
+              <button type="button" className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-red-300 bg-white px-4 font-bold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto" onClick={requestDisconnect} disabled={disconnecting}>
+                <Unplug size={17} /> Disconnect
               </button>
             </div>
           </section>
         ) : (
           <form className="space-y-4" onSubmit={handleSubmit} noValidate>
             <div className="grid gap-4 sm:grid-cols-[1fr_9rem]">
-              <label className="field-label">Database host<span className="input-wrap"><Server size={18} /><input value={host} onChange={(event) => setHost(event.target.value)} inputMode="decimal" placeholder="127.0.0.1 or 192.168.109.211" required /></span></label>
+              <label className="field-label">Database host<span className="input-wrap"><Server size={18} /><input value={host} onChange={(event) => setHost(event.target.value)} inputMode="decimal" placeholder="127.0.0.1 or 192.168.109.117" required /></span></label>
               <label className="field-label">Port<span className="input-wrap"><Network size={18} /><input value={port} onChange={(event) => setPort(event.target.value)} inputMode="numeric" placeholder="3306" required /></span></label>
             </div>
             <div className="grid grid-cols-2 gap-2" aria-label="Database host shortcuts">
               <button type="button" className="button-secondary" onClick={() => setHost('127.0.0.1')}>This PC (home)</button>
-              <button type="button" className="button-secondary" onClick={() => setHost('192.168.109.211')}>School server</button>
+              <button type="button" className="button-secondary" onClick={() => setHost('192.168.109.117')}>School server</button>
             </div>
             <p className="-mt-2 text-xs leading-5 text-slate-500">Use <strong>127.0.0.1</strong> only when XAMPP/MariaDB and <strong>adfc_onecampus</strong> are on this same computer. At school, use the OneCampus database PC&apos;s private LAN IP.</p>
             <label className="field-label">Database name<span className="input-wrap"><Database size={18} /><input value={database} onChange={(event) => setDatabase(event.target.value)} autoComplete="off" required /></span></label>

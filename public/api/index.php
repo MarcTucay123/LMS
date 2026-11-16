@@ -54,7 +54,10 @@ function system_health(): never
 
 function system_first_admin_status(): never
 {
-    $statement = db()->query("SELECT COUNT(*) FROM profiles WHERE role='admin'");
+    $statement = db()->query("SELECT COUNT(*) FROM user_access_roles uar
+        JOIN access_roles ar ON ar.role_id=uar.role_id
+        JOIN users u ON u.user_id=uar.user_id
+        WHERE uar.module_code='lms' AND LOWER(ar.role_name) LIKE '%admin%' AND u.status='Active'");
     json_response(['available' => (int)$statement->fetchColumn() === 0]);
 }
 
@@ -68,7 +71,7 @@ function system_onecampus_connection(array $request): never
     $user = trim((string)($request['username'] ?? ''));
     $pass = (string)($request['password'] ?? '');
     if (!filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) || !is_private_lan_ipv4($host)) {
-        fail('Enter 127.0.0.1 for a database on this PC or a private LAN IPv4 address such as 192.168.109.211.');
+        fail('Enter 127.0.0.1 for a database on this PC or a private LAN IPv4 address such as 192.168.109.117.');
     }
     if (!ctype_digit($port) || (int)$port < 1 || (int)$port > 65535) fail('Enter a valid database port.');
     if (!preg_match('/^[A-Za-z0-9_]+$/', $name)) fail('Enter a valid database name.');
@@ -94,9 +97,6 @@ function system_onecampus_connection(array $request): never
 function system_onecampus_disconnect(): never
 {
     global $config;
-    $administratorCount = (int)db()->query("SELECT COUNT(*) FROM profiles WHERE role='admin'")->fetchColumn();
-    if ($administratorCount > 0) require_admin();
-
     $path = $config['private_root'] . DIRECTORY_SEPARATOR . 'api' . DIRECTORY_SEPARATOR . 'onecampus.setup.php';
     if (is_file($path) && !unlink($path)) {
         throw new RuntimeException('Unable to delete the private OneCampus setup file.');
@@ -171,10 +171,17 @@ function is_private_lan_ipv4(string $host): bool
 
 function auth_login(array $request): never
 {
-    $email = strtolower(trim((string)($request['email'] ?? '')));
+    $login = strtolower(trim((string)($request['email'] ?? '')));
     $password = (string)($request['password'] ?? '');
-    $stmt = db()->prepare('SELECT id,email,password_hash,requested_role FROM users WHERE email=?');
-    $stmt->execute([$email]);
+    $stmt = db()->prepare("SELECT CAST(u.user_id AS CHAR) id,LOWER(u.email) email,u.password_hash,
+        CASE WHEN EXISTS (
+            SELECT 1 FROM user_access_roles uar
+            JOIN access_roles ar ON ar.role_id=uar.role_id
+            WHERE uar.user_id=u.user_id AND uar.module_code='lms' AND LOWER(ar.role_name) LIKE '%admin%'
+        ) THEN 'admin' WHEN i.instructor_id IS NOT NULL THEN 'instructor' ELSE 'student' END requested_role
+        FROM users u LEFT JOIN instructors i ON i.user_id=u.user_id
+        WHERE u.status='Active' AND (LOWER(u.username)=? OR LOWER(u.email)=?) LIMIT 1");
+    $stmt->execute([$login, $login]);
     $user = $stmt->fetch();
     if (!$user || !password_verify($password, $user['password_hash'])) fail('Invalid login credentials', 401);
     session_regenerate_id(true);
@@ -268,7 +275,6 @@ function query_select(string $table, string $columns, array $filters, array $ord
         'subjects' => select_subjects($orders),
         'classes' => select_classes($filters, $orders),
         'enrollments' => select_enrollments($filters),
-        'registration_applications' => select_registrations($orders),
         'sync_logs' => select_sync_logs($orders, $limit),
         'materials', 'announcements', 'assignments', 'quizzes' => select_class_children($table, $filters, $orders),
         'discussion_topics' => select_topics($filters, $orders),
@@ -309,29 +315,49 @@ function select_profiles(array $filters, array $orders): array
     $id = filter_value($filters, 'id');
     $role = filter_value($filters, 'role');
     if ($user['role'] !== 'admin' && $id !== $user['id']) fail('You are not allowed to view these profiles.', 403);
-    $sql = 'SELECT * FROM profiles WHERE 1=1'; $params = [];
-    if ($id !== null) { $sql .= ' AND id=?'; $params[] = $id; }
-    if ($role !== null) { $sql .= ' AND role=?'; $params[] = $role; }
-    $sql .= order_clause($orders, ['full_name','created_at'], 'full_name ASC');
+    $sql = "SELECT CAST(u.user_id AS CHAR) id,u.user_uid onecampus_user_id,'onecampus' source_system,
+        u.updated_at synced_at,COALESCE(s.student_number,i.employee_number,u.username,u.user_uid) school_id,
+        LOWER(u.email) email,u.full_name,NULL first_name,NULL middle_name,NULL last_name,NULL suffix,
+        NULL class_code,NULL program,NULL year_level,NULL block,NULL academic_year,NULL semester,
+        CASE WHEN EXISTS (SELECT 1 FROM user_access_roles uar JOIN access_roles ar ON ar.role_id=uar.role_id
+            WHERE uar.user_id=u.user_id AND uar.module_code='lms' AND LOWER(ar.role_name) LIKE '%admin%')
+            THEN 'admin' WHEN i.instructor_id IS NOT NULL THEN 'instructor' ELSE 'student' END role,
+        CASE WHEN u.status='Active' THEN 'active' ELSE 'inactive' END status,u.created_at,u.updated_at
+        FROM users u LEFT JOIN students s ON s.student_id=u.student_id LEFT JOIN instructors i ON i.user_id=u.user_id WHERE 1=1"; $params = [];
+    if ($id !== null) { $sql .= ' AND u.user_id=?'; $params[] = $id; }
+    if ($role !== null) {
+        if ($role === 'admin') $sql .= " AND EXISTS (SELECT 1 FROM user_access_roles uar JOIN access_roles ar ON ar.role_id=uar.role_id WHERE uar.user_id=u.user_id AND uar.module_code='lms' AND LOWER(ar.role_name) LIKE '%admin%')";
+        elseif ($role === 'instructor') $sql .= ' AND i.instructor_id IS NOT NULL';
+        else $sql .= ' AND s.student_id IS NOT NULL AND i.instructor_id IS NULL';
+    }
+    $sql .= qualified_order_clause($orders, ['full_name','created_at'], 'u', 'u.full_name ASC');
     return fetch_all($sql, $params, 'profiles');
 }
 
 function select_subjects(array $orders): array
 {
     require_admin();
-    return fetch_all('SELECT id,code,title,description,created_at,updated_at FROM subjects' . order_clause($orders, ['code','created_at'], 'code ASC'), [], 'subjects');
+    return fetch_all("SELECT subject_uid id,subject_code code,subject_title title,description,created_at,created_at updated_at FROM subjects WHERE status='Active'" . order_clause($orders, ['code','created_at'], 'code ASC'), [], 'subjects');
 }
 
 function select_classes(array $filters, array $orders): array
 {
     $user = require_active_user();
-    $sql = 'SELECT c.*, JSON_OBJECT("code",s.code,"title",s.title) subject, JSON_OBJECT("full_name",p.full_name) instructor FROM classes c JOIN subjects s ON s.id=c.subject_id JOIN profiles p ON p.id=c.instructor_id WHERE 1=1';
+    $sql = "SELECT c.class_uid id,c.class_uid onecampus_class_id,'class_scheduling' source_system,c.updated_at synced_at,
+        s.subject_uid subject_id,CAST(u.user_id AS CHAR) instructor_id,COALESCE(c.section,c.class_code) section,
+        ap.academic_year school_year,CASE ap.semester WHEN '1st' THEN 'First Semester' WHEN '2nd' THEN 'Second Semester' ELSE 'Summer' END semester,
+        CASE WHEN LOWER(c.status)='active' THEN 'active' ELSE 'archived' END status,c.created_at,c.updated_at,
+        JSON_OBJECT('code',s.subject_code,'title',s.subject_title) subject,
+        JSON_OBJECT('full_name',COALESCE(u.full_name,'Not assigned')) instructor
+        FROM academic_classes c JOIN subjects s ON s.subject_id=c.subject_id JOIN academic_periods ap ON ap.period_id=c.period_id
+        LEFT JOIN instructors i ON i.instructor_id=c.instructor_id LEFT JOIN users u ON u.user_id=i.user_id WHERE 1=1";
     $params = [];
-    if ($user['role'] === 'instructor') { $sql .= ' AND c.instructor_id=?'; $params[] = $user['id']; }
-    elseif ($user['role'] === 'student') { $sql .= " AND EXISTS (SELECT 1 FROM enrollments e WHERE e.class_id=c.id AND e.student_id=? AND e.status='enrolled')"; $params[] = $user['id']; }
+    if ($user['role'] === 'instructor') { $sql .= ' AND c.instructor_id=?'; $params[] = $user['instructor_id']; }
+    elseif ($user['role'] === 'student') { $sql .= " AND EXISTS (SELECT 1 FROM class_enrollments e WHERE e.class_id=c.class_id AND e.student_id=? AND e.membership_status='Active')"; $params[] = $user['student_id']; }
     foreach ($filters as $filter) {
         if (($filter['type'] ?? '') !== 'eq' || !in_array($filter['column'] ?? '', ['id','status'], true)) continue;
-        $sql .= ' AND c.`' . $filter['column'] . '`=?'; $params[] = $filter['value'];
+        if ($filter['column'] === 'id') { $sql .= ' AND c.class_uid=?'; $params[] = $filter['value']; }
+        else { $sql .= " AND LOWER(c.status)=LOWER(?)"; $params[] = $filter['value']; }
     }
     $sql .= qualified_order_clause($orders, ['created_at','school_year','section'], 'c', 'c.created_at ASC');
     $rows = fetch_all($sql, $params, 'classes');
@@ -346,10 +372,16 @@ function select_enrollments(array $filters): array
     if ($classId === '') fail('A class filter is required.');
     if (!class_report_access($classId, $user) && $user['role'] !== 'student') fail('Access denied.', 403);
     if ($user['role'] === 'student' && !class_access($classId, $user)) fail('Access denied.', 403);
-    $sql = 'SELECT e.*, JSON_OBJECT("id",p.id,"full_name",p.full_name,"school_id",p.school_id) student FROM enrollments e JOIN profiles p ON p.id=e.student_id WHERE e.class_id=?';
+    $sql = "SELECT e.enrollment_uid id,e.enrollment_uid onecampus_enrollment_id,'enrollment_management' source_system,
+        e.updated_at synced_at,c.class_uid class_id,CAST(u.user_id AS CHAR) student_id,
+        CASE e.membership_status WHEN 'Active' THEN 'enrolled' WHEN 'Completed' THEN 'completed' ELSE 'dropped' END status,
+        e.enrolled_at created_at,e.updated_at,
+        JSON_OBJECT('id',CAST(u.user_id AS CHAR),'full_name',u.full_name,'school_id',s.student_number) student
+        FROM class_enrollments e JOIN academic_classes c ON c.class_id=e.class_id JOIN students s ON s.student_id=e.student_id
+        JOIN users u ON u.student_id=s.student_id WHERE c.class_uid=?";
     $params = [$classId];
-    $status = filter_value($filters, 'status'); if ($status !== null) { $sql .= ' AND e.status=?'; $params[] = $status; }
-    if ($user['role'] === 'student') { $sql .= ' AND e.student_id=?'; $params[] = $user['id']; }
+    $status = filter_value($filters, 'status'); if ($status !== null) { $sql .= " AND e.membership_status=CASE ? WHEN 'enrolled' THEN 'Active' WHEN 'completed' THEN 'Completed' ELSE 'Withdrawn' END"; $params[] = $status; }
+    if ($user['role'] === 'student') { $sql .= ' AND e.student_id=?'; $params[] = $user['student_id']; }
     $rows = fetch_all($sql, $params, 'enrollments');
     foreach ($rows as &$row) $row['student'] = json_decode($row['student'], true);
     return $rows;
@@ -367,7 +399,7 @@ function select_registrations(array $orders): array
 function select_sync_logs(array $orders, ?int $limit): array
 {
     require_admin();
-    $sql = 'SELECT * FROM sync_logs' . order_clause($orders, ['started_at'], 'started_at DESC') . ' LIMIT ' . ($limit ?? 50);
+    $sql = "SELECT id,initiated_by,status,records,message,started_at,completed_at,'direct_database' source FROM learning_sync_logs" . order_clause($orders, ['started_at'], 'started_at DESC') . ' LIMIT ' . ($limit ?? 50);
     return fetch_all($sql, [], 'sync_logs');
 }
 
@@ -563,8 +595,6 @@ function rpc_action(array $request): never
     $name = (string)($request['name'] ?? ''); $args = is_array($request['args'] ?? null) ? $request['args'] : [];
     $data = match ($name) {
         'admin_update_user' => rpc_admin_update_user($args),
-        'admin_approve_registration' => rpc_approve_registration($args),
-        'admin_reject_registration' => rpc_reject_registration($args),
         'submit_assignment' => rpc_submit_assignment($args),
         'grade_submission' => rpc_grade_submission($args),
         'submit_quiz' => rpc_submit_quiz($args),
@@ -581,31 +611,6 @@ function rpc_admin_update_user(array $args): array
     if ($role !== 'instructor') { $stmt = db()->prepare('SELECT 1 FROM classes WHERE instructor_id=? LIMIT 1'); $stmt->execute([$id]); if ($stmt->fetchColumn()) fail("Reassign this instructor's class offerings before changing their role."); }
     db()->prepare('UPDATE profiles SET role=?,status=? WHERE id=?')->execute([$role,$status,$id]);
     $stmt = db()->prepare('SELECT * FROM profiles WHERE id=?'); $stmt->execute([$id]); $row = $stmt->fetch(); if (!$row) fail('User profile not found.',404); return normalize_row('profiles',$row);
-}
-
-function rpc_approve_registration(array $args): array
-{
-    $admin = require_admin(); $id = (string)($args['target_application_id'] ?? '');
-    $pdo = db(); $pdo->beginTransaction();
-    try {
-        $stmt = $pdo->prepare("SELECT * FROM registration_applications WHERE id=? AND status='pending' FOR UPDATE"); $stmt->execute([$id]); $app = $stmt->fetch();
-        if (!$app) fail('Pending registration application not found.',404);
-        $count = (int)$pdo->query('SELECT COUNT(*) FROM profiles')->fetchColumn() + 1;
-        $code = ['student'=>'STU','instructor'=>'FAC','admin'=>'ADMIN'][$app['requested_role']];
-        $schoolId = $app['requested_role'] === 'student' && $app['student_id_number'] ? $app['student_id_number'] : sprintf('ADFC-%s-%06d',$code,$count);
-        $insert = $pdo->prepare('INSERT INTO profiles (id,onecampus_user_id,source_system,school_id,email,full_name,first_name,middle_name,last_name,suffix,class_code,program,year_level,block,academic_year,semester,role,status) VALUES (?,NULL,\'lms_registration\',?,?,?,?,?,?,?,?,?,?,?,?,?,?,\'active\')');
-        $insert->execute([$app['auth_user_id'],$schoolId,$app['email'],$app['full_name'],$app['first_name'],$app['middle_name'],$app['last_name'],$app['suffix'],$app['class_code'],$app['program'],$app['year_level'],$app['block'],$app['academic_year'],$app['semester'],$app['requested_role']]);
-        $pdo->prepare("UPDATE registration_applications SET status='approved',reviewed_by=?,reviewed_at=NOW() WHERE id=?")->execute([$admin['id'],$id]);
-        $pdo->commit(); $profile = $pdo->prepare('SELECT * FROM profiles WHERE id=?'); $profile->execute([$app['auth_user_id']]); return normalize_row('profiles',$profile->fetch());
-    } catch (Throwable $error) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $error; }
-}
-
-function rpc_reject_registration(array $args): array
-{
-    $admin=require_admin(); $id=(string)($args['target_application_id']??'');
-    $stmt=db()->prepare("UPDATE registration_applications SET status='rejected',reviewed_by=?,reviewed_at=NOW() WHERE id=? AND status='pending'"); $stmt->execute([$admin['id'],$id]);
-    if(!$stmt->rowCount()) fail('Pending registration application not found.',404);
-    $get=db()->prepare('SELECT * FROM registration_applications WHERE id=?'); $get->execute([$id]); return normalize_row('registration_applications',$get->fetch());
 }
 
 function rpc_submit_assignment(array $args): array
@@ -642,62 +647,16 @@ function function_action(array $request): never
 {
     $name=(string)($request['name']??'');$body=is_array($request['body']??null)?$request['body']:[];
     match($name){
-        'register-account'=>register_account($body),
-        'activate-account'=>activate_account($body),
+        'register-account'=>registration_disabled(),
+        'activate-account'=>registration_disabled(),
         'sync-onecampus'=>sync_onecampus(),
         default=>fail('Unknown server function.',404),
     };
 }
 
-function register_account(array $body): never
+function registration_disabled(): never
 {
-    if(($body['action']??null)==='catalog'){
-        $rows=fetch_all("SELECT c.id,c.section,c.school_year,c.semester,JSON_OBJECT('code',s.code,'title',s.title) subject FROM classes c JOIN subjects s ON s.id=c.subject_id WHERE c.status='active' ORDER BY c.school_year DESC,c.section ASC",[],'classes');
-        foreach($rows as &$row)$row['subject']=json_decode($row['subject'],true);json_response(['classes'=>$rows]);
-    }
-    $role=(string)($body['role']??'');if(!in_array($role,['student','instructor','admin'],true))fail('Select a valid registration role.',403);
-    $first=valid_name($body['firstName']??null,true);$middle=valid_name($body['middleName']??null);$last=valid_name($body['lastName']??null,true);$suffix=trim((string)($body['suffix']??''))?:null;
-    $email=strtolower(trim((string)($body['email']??'')));if(!filter_var($email,FILTER_VALIDATE_EMAIL))fail('Use a valid email address.');
-    $password=(string)($body['password']??'');validate_password($password);$full=implode(' ',array_filter([$first,$middle,$last,$suffix]));
-    if($role==='admin')register_first_administrator($first,$middle,$last,$suffix,$email,$password,$full);
-    $studentId=$role==='student'?strtoupper(trim((string)($body['studentIdNumber']??''))):null;$classCode=$role==='student'?trim((string)($body['classCode']??'')):null;$program=$role==='student'?strtoupper(trim((string)($body['program']??''))):null;$year=$role==='student'?(int)($body['yearLevel']??0):null;$block=$role==='student'?strtoupper(trim((string)($body['block']??''))):null;$academicYear=$role==='student'?trim((string)($body['academicYear']??'')):null;$semester=$role==='student'?trim((string)($body['semester']??'')):null;$classIds=$role==='student'&&is_array($body['selectedClassIds']??null)?array_values(array_unique($body['selectedClassIds'])):[];
-    if($role==='student'){
-        if(!preg_match('/^[A-Z0-9-]{4,30}$/',$studentId??'')||!preg_match('/^[0-9]{4}$/',$classCode??'')||!preg_match('/^[0-9]{4}-[0-9]{4}$/',$academicYear??'')||$year<1||$year>10||!$program||!$block||!$semester||!$classIds||!($body['termsAccepted']??false))fail('Complete all required student registration details.');
-        $placeholders=implode(',',array_fill(0,count($classIds),'?'));
-        $check=db()->prepare("SELECT COUNT(*) FROM classes WHERE id IN ($placeholders) AND status='active' AND UPPER(section)=? AND school_year=? AND semester=?");$check->execute([...$classIds,strtoupper("$program-$year$block"),$academicYear,$semester]);if((int)$check->fetchColumn()!==count($classIds))fail('Selected classes do not match the supplied program, year, block, and academic term.');
-    }
-    $pdo=db();$pdo->beginTransaction();try{
-        $id=uuid();$pdo->prepare('INSERT INTO users (id,email,password_hash,requested_role) VALUES (?,?,?,?)')->execute([$id,$email,password_hash($password,PASSWORD_DEFAULT),$role]);
-        $pdo->prepare('INSERT INTO registration_applications (id,auth_user_id,email,full_name,first_name,middle_name,last_name,suffix,student_id_number,class_code,program,year_level,block,academic_year,semester,terms_accepted_at,requested_role) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,IF(?=1,NOW(),NULL),?)')->execute([uuid(),$id,$email,$full,$first,$middle,$last,$suffix,$studentId,$classCode,$program,$year?:null,$block,$academicYear,$semester,$role==='student'?1:0,$role]);
-        $applicationId=(string)$pdo->query('SELECT id FROM registration_applications WHERE auth_user_id='.$pdo->quote($id))->fetchColumn();
-        $link=$pdo->prepare('INSERT INTO registration_application_classes (application_id,class_id) VALUES (?,?)');foreach($classIds as $classId)$link->execute([$applicationId,$classId]);
-        $pdo->commit();json_response(['message'=>'Registration submitted. An administrator must approve your account before you can sign in.'],201);
-    }catch(Throwable $error){if($pdo->inTransaction())$pdo->rollBack();if(unique_violation($error))fail('This email address or Student ID Number is already registered.',409);throw $error;}
-}
-
-function register_first_administrator(?string $first, ?string $middle, ?string $last, ?string $suffix, string $email, string $password, string $full): never
-{
-    $pdo = db();
-    $lock = $pdo->query("SELECT GET_LOCK('adfc_lms_first_administrator',5)")->fetchColumn();
-    if ((int)$lock !== 1) fail('Administrator registration is busy. Please try again.', 503);
-    try {
-        if ((int)$pdo->query("SELECT COUNT(*) FROM profiles WHERE role='admin'")->fetchColumn() > 0) {
-            fail('The first administrator has already been created. Sign in or ask an existing administrator to manage accounts.', 409);
-        }
-        $pdo->beginTransaction();
-        $id = uuid();
-        $schoolId = 'ADFC-ADMIN-' . strtoupper(substr(str_replace('-', '', $id), 0, 8));
-        $pdo->prepare('INSERT INTO users (id,email,password_hash,requested_role) VALUES (?,?,?,\'admin\')')->execute([$id,$email,password_hash($password,PASSWORD_DEFAULT)]);
-        $pdo->prepare("INSERT INTO profiles (id,onecampus_user_id,source_system,school_id,email,full_name,first_name,middle_name,last_name,suffix,role,status) VALUES (?,NULL,'lms_registration',?,?,?,?,?,?,?,'admin','active')")->execute([$id,$schoolId,$email,$full,$first,$middle,$last,$suffix]);
-        $pdo->commit();
-        json_response(['message' => 'Administrator account created. You can sign in immediately.'], 201);
-    } catch (Throwable $error) {
-        if ($pdo->inTransaction()) $pdo->rollBack();
-        if (unique_violation($error)) fail('This email address is already registered.', 409);
-        throw $error;
-    } finally {
-        $pdo->query("SELECT RELEASE_LOCK('adfc_lms_first_administrator')");
-    }
+    fail('LMS self-registration and LMS-side approval are disabled. Accounts and access are managed by the main ADFC OneCampus system.', 403);
 }
 
 function activate_account(array $body): never

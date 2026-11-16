@@ -1,10 +1,17 @@
 Options -Indexes
 RewriteEngine On
 
+# LMS is the physical project directory, but b1-learning-management is the
+# canonical public URL expected by the compiled Vite application. Redirect
+# accidental /LMS visits while preserving the route and query string.
+RewriteCond %{REQUEST_URI} ^/LMS(?:/(.*))?$ [NC]
+RewriteRule ^(.*)$ /b1-learning-management/$1 [R=302,L,NE]
+
 # Serve the production PHP API and compiled Vite assets from dist while the
-# public LAN URL remains /lms/.
+# public URL remains /b1-learning-management/ on localhost and the school LAN.
 RewriteRule ^api/(.*)$ dist/api/$1 [L]
 RewriteRule ^assets/(.*)$ dist/assets/$1 [L]
+RewriteRule ^subsystem\.json$ dist/subsystem.json [L]
 
 # Prevent direct browser access to project source, private data, and tooling.
 RewriteRule ^(?:api|database|docs|mock-onecampus|node_modules|public|src|storage)(?:/|$) - [F,L]
