@@ -11,7 +11,8 @@ $ErrorActionPreference = 'Stop'
 $migrationRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $migrationFiles = @(
     '001_prepare_lms_shared_data.sql',
-    '002_create_lms_administrator.sql'
+    '002_create_lms_administrator.sql',
+    '003_repair_lms_administrator_user_id.sql'
 )
 
 if (-not (Test-Path -LiteralPath $MySqlExe)) {

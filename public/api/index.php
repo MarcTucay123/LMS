@@ -44,10 +44,13 @@ try {
 
 function system_health(): never
 {
+    $connection = onecampus_connection_config();
     db()->query('SELECT 1')->fetchColumn();
     json_response([
         'status' => 'ok',
         'database' => 'connected',
+        'database_host' => $connection['host'],
+        'database_port' => $connection['port'],
         'server_time' => (new DateTimeImmutable())->format(DATE_ATOM),
     ]);
 }

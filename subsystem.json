@@ -7,7 +7,7 @@
     ""
   ],
   "code": "LMS",
-  "url": "http://192.168.109.152/b1-learning-management/",
+  "url": "http://192.168.1.121/b1-learning-management/",
   "tables": [
     "learning_assignments",
     "learning_discussion_posts",

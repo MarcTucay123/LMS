@@ -15,8 +15,10 @@ not modified by this package.
    - Initial password: `adfc1984`
    - Email identity: `marctucay321321@gmail.com`
    - Scope: `user_access_roles.module_code = 'lms'`
-4. Records both migrations in the shared `schema_migrations` table.
-5. Supplies verification queries and an optional least-privilege MySQL account
+4. Repairs an LMS administrator accidentally stored with numeric `user_id = 0`
+   while preserving `user_uid = USER-LMS-ADMIN-0001`.
+5. Records the migrations in the shared `schema_migrations` table.
+6. Supplies verification queries and an optional least-privilege MySQL account
    template.
 
 ## Important ownership rule
@@ -35,24 +37,26 @@ until the Enrollment Management System publishes those records.
 
    `IMPORT_THIS_IN_PHPMYADMIN.sql`
 
-   It explicitly contains `USE adfc_onecampus;` and includes both required
-   migrations. You do not need to paste migration 001 and 002 separately when
+   It explicitly contains `USE adfc_onecampus;` and includes migrations 001 and
+   002. You do not need to paste those two migrations separately when
    using this combined file.
-3. Optionally run `verify_lms_migration.sql` from phpMyAdmin to see the detailed
+3. If the `adfc_lms` row shows `user_id = 0`, import
+   `003_repair_lms_administrator_user_id.sql` as a separate repair migration.
+4. Optionally run `verify_lms_migration.sql` from phpMyAdmin to see the detailed
    checks and retrievable rows.
-4. Alternatively, open PowerShell and run the shared database migrations with:
+5. Alternatively, open PowerShell and run the shared database migrations with:
 
    ```powershell
    & 'C:\xampp\htdocs\LMS\database\migrate_adfc_onecampus_lms_20261117\run_migrations.ps1'
    ```
 
-5. Review the verification output. Every `failed_check` must be `0`.
-6. Configure the LMS OneCampus connection to host `127.0.0.1`, database
+6. Review the verification output. Every `failed_check` must be `0`.
+7. Configure the LMS OneCampus connection to host `127.0.0.1`, database
    `adfc_onecampus`, and a MySQL account that has `SELECT` permission.
-7. Open `http://localhost/b1-learning-management/`, use the Admin portal, and
+8. Open `http://localhost/b1-learning-management/`, use the Admin portal, and
    sign in with username `adfc_lms` or email
    `marctucay321321@gmail.com`, using password `adfc1984`.
-8. Sign in. The LMS now reads the unified `adfc_onecampus` tables directly; a
+9. Sign in. The LMS now reads the unified `adfc_onecampus` tables directly; a
    separate `lms_db` database is not used.
 
 ## School server deployment
@@ -128,13 +132,16 @@ package.
 For phpMyAdmin, import only:
 
 1. `IMPORT_THIS_IN_PHPMYADMIN.sql` — migrates `adfc_onecampus`
-2. Optionally import `verify_lms_migration.sql`
+2. `003_repair_lms_administrator_user_id.sql` — safe separate repair for an
+   existing `adfc_lms` row with `user_id = 0`
+3. Optionally import `verify_lms_migration.sql`
 
-The combined import contains these required migrations in order:
+The migration package contains these files in order:
 
 1. `001_prepare_lms_shared_data.sql`
 2. `002_create_lms_administrator.sql`
-3. `verify_lms_migration.sql` is verification only
+3. `003_repair_lms_administrator_user_id.sql` is the separate ID repair
+4. `verify_lms_migration.sql` is verification only
 
 All required migrations are idempotent and may be rerun. The administrator
 migration intentionally resets `adfc_lms` to the documented initial password

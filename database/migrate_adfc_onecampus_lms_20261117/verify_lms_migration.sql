@@ -1,4 +1,4 @@
--- Run after 001 and 002. Every failed_check value should be 0.
+-- Run after 001, 002, and 003. Every failed_check value should be 0.
 
 USE `adfc_onecampus`;
 
@@ -22,7 +22,17 @@ INNER JOIN access_roles ar ON ar.role_id = uar.role_id
 WHERE u.username = 'adfc_lms'
   AND u.status = 'Active'
   AND uar.module_code = 'lms'
-  AND ar.role_name = 'Administrator';
+  AND ar.role_name = 'Administrator'
+UNION ALL
+SELECT 'lms_admin_invalid_user_id', COUNT(*)
+FROM users
+WHERE username = 'adfc_lms'
+  AND user_id = 0
+UNION ALL
+SELECT 'lms_admin_missing_user_uid', COUNT(*)
+FROM users
+WHERE username = 'adfc_lms'
+  AND (user_uid IS NULL OR TRIM(user_uid) = '');
 
 SELECT 'vw_lms_users' AS projection, COUNT(*) AS row_count FROM vw_lms_users
 UNION ALL

@@ -112,7 +112,7 @@ function user_payload(array $user): array
 function session_payload(): ?array
 {
     $id = current_user_id();
-    if (!$id) return null;
+    if ($id === null) return null;
     $stmt = db()->prepare("SELECT CAST(u.user_id AS CHAR) id,LOWER(u.email) email,
         CASE WHEN EXISTS (
             SELECT 1 FROM user_access_roles uar
@@ -129,7 +129,7 @@ function session_payload(): ?array
 function require_user(): array
 {
     $id = current_user_id();
-    if (!$id) fail('Authentication is required.', 401);
+    if ($id === null) fail('Authentication is required.', 401);
     $stmt = db()->prepare("SELECT CAST(u.user_id AS CHAR) id,LOWER(u.email) email,
         CASE WHEN EXISTS (
             SELECT 1 FROM user_access_roles uar

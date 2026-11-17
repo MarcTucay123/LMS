@@ -174,7 +174,19 @@ The migration already contains:
 USE `adfc_onecampus`;
 ```
 
-The combined file performs both required migrations. Do not separately import `001_prepare_lms_shared_data.sql` and `002_create_lms_administrator.sql` after successfully importing the combined file.
+The combined file performs migrations 001 and 002. Do not separately import
+`001_prepare_lms_shared_data.sql` and `002_create_lms_administrator.sql` after
+successfully importing the combined file.
+
+If phpMyAdmin shows the `adfc_lms` account with `user_id = 0`, import this
+separate repair migration immediately afterward:
+
+```text
+C:\xampp\htdocs\LMS\database\migrate_adfc_onecampus_lms_20261117\003_repair_lms_administrator_user_id.sql
+```
+
+The repair assigns a valid numeric `user_id`, preserves
+`user_uid = USER-LMS-ADMIN-0001`, and repairs the LMS role relationship.
 
 ### What the migration changes
 
@@ -189,7 +201,9 @@ The migration:
   - `vw_lms_enrollments`
 - Creates or repairs the subsystem-scoped LMS administrator
 - Assigns the `Administrator` role with `module_code = 'lms'`
-- Records both migrations in `schema_migrations`
+- Repairs an invalid LMS administrator `user_id = 0` without changing its
+  stable `user_uid`
+- Records the migrations in `schema_migrations`
 
 The migration does not contain `DROP TABLE`, `DROP DATABASE`, `DELETE`, or `TRUNCATE` statements. The importing account still needs permission to update the UID columns, create or replace views, insert the LMS administrator and role assignment, and insert migration records.
 

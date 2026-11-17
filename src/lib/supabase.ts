@@ -24,10 +24,6 @@ type RpcResult<T extends RpcName> = Database['public']['Functions'][T]['Returns'
 
 const configuredUrl = import.meta.env.VITE_API_URL as string | undefined
 const apiUrl = configuredUrl || `${import.meta.env.BASE_URL.replace(/\/$/, '')}/api/index.php`
-export const apiServerLabel = (() => {
-  try { return new URL(apiUrl, window.location.origin).host }
-  catch { return apiUrl }
-})()
 const listeners = new Set<AuthListener>()
 let currentSession: LocalSession | null = null
 
@@ -186,7 +182,7 @@ function storageBucket(bucket: string) {
 export const supabase = {
   health: async () => {
     try {
-      const data = await request<{ status: 'ok'; database: 'connected'; server_time: string }>('system.health')
+      const data = await request<{ status: 'ok'; database: 'connected'; database_host: string; database_port: string; server_time: string }>('system.health')
       return { data, error: null }
     } catch (caught) { return { data: null, error: caught as ApiError } }
   },

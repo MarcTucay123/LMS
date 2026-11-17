@@ -13,7 +13,7 @@ import {
   UserRound,
 } from 'lucide-react'
 import { pendingRoleCheckKey, roleLabels, type LoginPortal } from '../lib/auth'
-import { apiServerLabel, supabase } from '../lib/supabase'
+import { supabase } from '../lib/supabase'
 
 const portalDetails: Record<LoginPortal, { title: string; description: string; icon: typeof UserRound }> = {
   student: {
@@ -48,14 +48,17 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking')
+  const [databaseServer, setDatabaseServer] = useState<string | null>(null)
   const message = (location.state as { message?: string } | null)?.message
   const details = portalDetails[portal]
   const PortalIcon = details.icon
 
   useEffect(() => {
     let active = true
-    void supabase.health().then(({ error: healthError }) => {
-      if (active) setServerStatus(healthError ? 'offline' : 'online')
+    void supabase.health().then(({ data, error: healthError }) => {
+      if (!active) return
+      setServerStatus(healthError ? 'offline' : 'online')
+      setDatabaseServer(data ? `${data.database_host}:${data.database_port}` : null)
     })
     return () => { active = false }
   }, [])
@@ -151,7 +154,13 @@ export function LoginPage() {
 
       <div className={`mb-4 flex items-center gap-2 rounded-lg border p-3 text-xs font-semibold ${serverStatus === 'online' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : serverStatus === 'offline' ? 'border-red-200 bg-red-50 text-red-800' : 'border-slate-200 bg-slate-50 text-slate-600'}`} role="status">
         <Server size={16} aria-hidden="true" />
-        <span>{serverStatus === 'online' ? 'Connected' : serverStatus === 'offline' ? 'Server unavailable' : 'Checking server'}: {apiServerLabel}</span>
+        <span>
+          {serverStatus === 'online'
+            ? `OneCampus database connected: ${databaseServer ?? 'verified'}`
+            : serverStatus === 'offline'
+              ? 'OneCampus database unavailable'
+              : 'Checking OneCampus database connection'}
+        </span>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
