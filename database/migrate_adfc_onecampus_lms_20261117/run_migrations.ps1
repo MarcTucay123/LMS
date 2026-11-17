@@ -12,7 +12,10 @@ $migrationRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $migrationFiles = @(
     '001_prepare_lms_shared_data.sql',
     '002_create_lms_administrator.sql',
-    '003_repair_lms_administrator_user_id.sql'
+    '003_repair_lms_administrator_user_id.sql',
+    '004_publish_enrollment_access.sql',
+    '005_add_exams_and_lms_audit_support.sql',
+    '006_add_identification_and_essay_grading.sql'
 )
 
 if (-not (Test-Path -LiteralPath $MySqlExe)) {

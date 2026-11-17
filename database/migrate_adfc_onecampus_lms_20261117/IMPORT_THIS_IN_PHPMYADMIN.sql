@@ -58,10 +58,24 @@ SELECT
             INNER JOIN access_roles ar ON ar.role_id = uar.role_id
             WHERE uar.user_id = u.user_id
               AND uar.module_code = 'lms'
-              AND LOWER(ar.role_name) LIKE '%admin%'
+              AND ar.role_name = 'Administrator'
+              AND ar.is_active = 1
         ) THEN 'admin'
-        WHEN i.instructor_id IS NOT NULL THEN 'instructor'
-        WHEN s.student_id IS NOT NULL THEN 'student'
+        WHEN i.instructor_id IS NOT NULL AND i.is_active = 1 AND EXISTS (
+            SELECT 1 FROM user_access_roles uar
+            INNER JOIN access_roles ar ON ar.role_id = uar.role_id
+            WHERE uar.user_id = u.user_id AND uar.module_code = 'lms'
+              AND ar.role_name = 'Instructor' AND ar.is_active = 1
+        ) THEN 'instructor'
+        WHEN s.student_id IS NOT NULL AND s.record_status = 'Active' AND EXISTS (
+            SELECT 1 FROM user_access_roles uar
+            INNER JOIN access_roles ar ON ar.role_id = uar.role_id
+            WHERE uar.user_id = u.user_id AND uar.module_code = 'lms'
+              AND ar.role_name = 'Student' AND ar.is_active = 1
+        ) AND EXISTS (
+            SELECT 1 FROM class_enrollments ce
+            WHERE ce.student_id = s.student_id AND ce.membership_status = 'Active'
+        ) THEN 'student'
         ELSE NULL
     END AS lms_role,
     CASE WHEN u.status = 'Active' THEN 'active' ELSE 'inactive' END AS lms_status,
@@ -70,15 +84,14 @@ SELECT
 FROM users u
 LEFT JOIN students s ON s.student_id = u.student_id
 LEFT JOIN instructors i ON i.user_id = u.user_id
-WHERE s.student_id IS NOT NULL
-   OR i.instructor_id IS NOT NULL
-   OR EXISTS (
+WHERE EXISTS (
        SELECT 1
        FROM user_access_roles uar
        INNER JOIN access_roles ar ON ar.role_id = uar.role_id
        WHERE uar.user_id = u.user_id
          AND uar.module_code = 'lms'
-         AND LOWER(ar.role_name) LIKE '%admin%'
+         AND ar.is_active = 1
+         AND ar.role_name IN ('Administrator', 'Instructor', 'Student')
    );
 
 CREATE OR REPLACE SQL SECURITY INVOKER VIEW vw_lms_subjects AS
@@ -152,7 +165,7 @@ SELECT
 FROM class_enrollments e
 INNER JOIN academic_classes c ON c.class_id = e.class_id
 INNER JOIN students s ON s.student_id = e.student_id
-INNER JOIN users u ON u.student_id = s.student_id;
+LEFT JOIN users u ON u.student_id = s.student_id;
 
 INSERT IGNORE INTO schema_migrations (module_code, migration_name, batch)
 VALUES ('lms', '2026_11_17_lms_shared_data_v1', 1);

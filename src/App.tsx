@@ -13,9 +13,11 @@ import { OneCampusSetupPage } from './pages/OneCampusSetupPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { WorkspacePage } from './pages/WorkspacePage'
+import { StudentTodoPage } from './pages/StudentTodoPage'
 import { AdminClassesPage } from './pages/admin/AdminClassesPage'
 import { AdminSyncPage } from './pages/admin/AdminSyncPage'
 import { AdminUsersPage } from './pages/admin/AdminUsersPage'
+import { AdminAuditLogsPage } from './pages/admin/AdminAuditLogsPage'
 
 export default function App() {
   return (
@@ -43,11 +45,15 @@ export default function App() {
               <Route path="/classes" element={<ClassesPage />} />
               <Route path="/classes/:classId" element={<ClassPage />} />
               <Route path="/workspace/:section" element={<WorkspacePage />} />
+              <Route element={<RoleRoute allowed={['student']} />}>
+                <Route path="/to-do" element={<StudentTodoPage />} />
+              </Route>
               <Route element={<RoleRoute allowed={['admin']} />}>
                 <Route path="/admin/users" element={<AdminUsersPage />} />
                 <Route path="/admin/registrations" element={<Navigate to="/admin/users" replace />} />
                 <Route path="/admin/classes" element={<AdminClassesPage />} />
                 <Route path="/admin/sync" element={<AdminSyncPage />} />
+                <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
               </Route>
             </Route>
           </Route>

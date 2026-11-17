@@ -4,7 +4,9 @@ import {
   BookOpen,
   ChevronDown,
   ClipboardCheck,
+  ClipboardList,
   FileText,
+  FileCheck2,
   GraduationCap,
   LayoutDashboard,
   LogOut,
@@ -21,19 +23,21 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 const roleLabels = { student: 'Student', instructor: 'Instructor', admin: 'Administrator' } as const
-
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
   '/dashboard': { title: 'Dashboard', subtitle: 'Your learning overview and active classes' },
   '/classes': { title: 'My Classes', subtitle: 'Authorized assigned or enrolled class workspaces' },
+  '/to-do': { title: 'To-do', subtitle: 'Assigned, missing, and completed student classwork' },
   '/workspace/materials': { title: 'Learning Materials', subtitle: 'Lessons, files, syllabi, and course resource links' },
   '/workspace/assignments': { title: 'Assignments', subtitle: 'Activities, submissions, scores, and instructor feedback' },
   '/workspace/quizzes': { title: 'Online Quizzes', subtitle: 'Class quizzes, attempts, objective scoring, and results' },
+  '/workspace/exams': { title: 'Exams', subtitle: 'Major examinations, schedules, attempts, scoring, and results' },
   '/workspace/discussions': { title: 'Discussions', subtitle: 'Moderated conversations for course topics' },
   '/workspace/announcements': { title: 'Announcements', subtitle: 'Class updates, deadlines, and feedback notices' },
   '/workspace/progress': { title: 'Progress & Reports', subtitle: 'Activity completion and available score summaries' },
   '/admin/users': { title: 'User Accounts', subtitle: 'Manage LMS access, roles, and account status' },
   '/admin/classes': { title: 'Class Offerings', subtitle: 'Manage subjects, instructors, and academic offerings' },
   '/admin/sync': { title: 'OneCampus Sync', subtitle: 'Import institutional records and review sync history' },
+  '/admin/audit-logs': { title: 'Audit Logs', subtitle: 'Review and print administrative and LMS activity' },
 }
 
 function initials(name: string) {
@@ -50,7 +54,9 @@ export function AppLayout() {
   const { profile, signOut } = useAuth()
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
   const closeMenu = () => setMobileMenuOpen(false)
+  const refreshPageData = () => setRefreshKey((value) => value + 1)
 
   useEffect(() => {
     if (!mobileMenuOpen) return
@@ -61,7 +67,8 @@ export function AppLayout() {
 
   if (!profile) return null
 
-  const page = location.pathname.startsWith('/classes/')
+  const isClassroom = /^\/classes\/[^/]+\/?$/.test(location.pathname)
+  const page = isClassroom
     ? { title: 'Classroom', subtitle: 'Learning resources and class activities' }
     : pageTitles[location.pathname] ?? pageTitles['/dashboard']
 
@@ -95,28 +102,38 @@ export function AppLayout() {
             <NavLink to="/dashboard" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}>
               <LayoutDashboard size={19} /> Dashboard
             </NavLink>
+            {profile.role === 'student' && <NavLink to="/to-do" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><ClipboardList size={19} /> To-do</NavLink>}
             <NavLink to="/classes" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}>
               <BookOpen size={19} /> {profile.role === 'admin' ? 'Class workspaces' : 'My classes'}
             </NavLink>
           </nav>
 
-          <p className="mb-3 mt-8 px-3 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Class workspace</p>
-          <nav aria-label="Class workspace" className="space-y-1.5">
-            <NavLink to="/workspace/materials" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><FileText size={19} /> Materials</NavLink>
-            <NavLink to="/workspace/assignments" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><ClipboardCheck size={19} /> Assignments</NavLink>
-            <NavLink to="/workspace/quizzes" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><NotebookTabs size={19} /> Quizzes</NavLink>
-            <NavLink to="/workspace/discussions" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><MessageCircle size={19} /> Discussions</NavLink>
-            <NavLink to="/workspace/announcements" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><Megaphone size={19} /> Announcements</NavLink>
-            <NavLink to="/workspace/progress" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><BarChart3 size={19} /> {profile.role === 'student' ? 'My progress' : 'Progress reports'}</NavLink>
-            {profile.role === 'admin' && (
-              <>
-                <p className="px-3 pb-1 pt-5 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Administration</p>
+          {!isClassroom && (
+            <>
+              <p className="mb-3 mt-8 px-3 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Class workspace</p>
+              <nav aria-label="Class workspace" className="space-y-1.5">
+                <NavLink to="/workspace/materials" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><FileText size={19} /> Materials</NavLink>
+                <NavLink to="/workspace/assignments" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><ClipboardCheck size={19} /> Assignments</NavLink>
+                <NavLink to="/workspace/quizzes" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><NotebookTabs size={19} /> Quizzes</NavLink>
+                <NavLink to="/workspace/exams" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><FileCheck2 size={19} /> Exams</NavLink>
+                <NavLink to="/workspace/discussions" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><MessageCircle size={19} /> Discussions</NavLink>
+                <NavLink to="/workspace/announcements" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><Megaphone size={19} /> Announcements</NavLink>
+                <NavLink to="/workspace/progress" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><BarChart3 size={19} /> {profile.role === 'student' ? 'My progress' : 'Progress reports'}</NavLink>
+              </nav>
+            </>
+          )}
+
+          {profile.role === 'admin' && (
+            <>
+              <p className="mb-3 mt-8 px-3 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Administration</p>
+              <nav aria-label="Administration" className="space-y-1.5">
                 <NavLink to="/admin/users" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><UserCog size={19} /> User accounts</NavLink>
                 <NavLink to="/admin/classes" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><ShieldCheck size={19} /> Class offerings</NavLink>
                 <NavLink to="/admin/sync" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><RefreshCw size={19} /> OneCampus sync</NavLink>
-              </>
-            )}
-          </nav>
+                <NavLink to="/admin/audit-logs" onClick={closeMenu} className={({ isActive }) => `portal-nav-link ${isActive ? 'portal-nav-link-active' : ''}`}><ClipboardList size={19} /> Audit logs</NavLink>
+              </nav>
+            </>
+          )}
         </div>
 
         <div className="border-t border-slate-200 p-4">
@@ -163,9 +180,13 @@ export function AppLayout() {
 
         <div className="h-16 sm:h-20 lg:hidden" aria-hidden="true" />
 
-        <main className="min-w-0 p-3 sm:p-6 lg:p-8"><Outlet /></main>
-        <footer className="border-t border-slate-200 bg-white px-4 py-5 text-center text-xs text-slate-400 sm:px-6 lg:text-right">
-          ADFC OneCampus Learning Management System
+        <main className="min-w-0 p-3 sm:p-6 lg:p-8"><Outlet key={`${location.pathname}${location.search}-${refreshKey}`} /></main>
+        <footer className="flex flex-col items-center justify-between gap-2 border-t border-slate-200 bg-white px-4 py-5 text-center text-xs text-slate-400 sm:flex-row sm:px-6 sm:text-left">
+          <span>ADFC OneCampus Learning Management System</span>
+          <button type="button" className="print-hidden inline-flex items-center gap-1.5 font-semibold text-slate-500 transition hover:text-brand-700" onClick={() => refreshPageData()} title="Refresh page data now">
+            <RefreshCw size={13} />
+            Refresh
+          </button>
         </footer>
       </div>
     </div>

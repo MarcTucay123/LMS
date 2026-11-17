@@ -4,6 +4,7 @@ export type EnrollmentStatus = 'enrolled' | 'dropped' | 'completed'
 export type PublishStatus = 'draft' | 'published' | 'closed'
 export type SubmissionStatus = 'draft' | 'submitted' | 'graded'
 export type AttemptStatus = 'in_progress' | 'submitted'
+export type AssessmentKind = 'quiz' | 'exam'
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
@@ -248,6 +249,12 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['sync_logs']['Insert']>
         Relationships: []
       }
+      audit_logs: {
+        Row: { id: number; module_code: string; actor_name: string | null; actor_role: string | null; action: string; record_type: string | null; record_label: string | null; description: string | null; ip_address: string | null; created_at: string }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       materials: {
         Row: { id: string; class_id: string; title: string; description: string | null; file_path: string | null; external_url: string | null; created_by: string; created_at: string; updated_at: string }
         Insert: { id?: string; class_id: string; title: string; description?: string | null; file_path?: string | null; external_url?: string | null; created_by?: string; created_at?: string; updated_at?: string }
@@ -285,14 +292,14 @@ export interface Database {
         Relationships: []
       }
       quizzes: {
-        Row: { id: string; class_id: string; title: string; description: string | null; opens_at: string | null; closes_at: string | null; time_limit_minutes: number | null; status: PublishStatus; created_by: string; created_at: string; updated_at: string }
-        Insert: { id?: string; class_id: string; title: string; description?: string | null; opens_at?: string | null; closes_at?: string | null; time_limit_minutes?: number | null; status?: PublishStatus; created_by?: string; created_at?: string; updated_at?: string }
+        Row: { id: string; class_id: string; title: string; description: string | null; assessment_kind: AssessmentKind; exam_type: string | null; opens_at: string | null; closes_at: string | null; time_limit_minutes: number | null; status: PublishStatus; created_by: string; created_at: string; updated_at: string }
+        Insert: { id?: string; class_id: string; title: string; description?: string | null; assessment_kind?: AssessmentKind; exam_type?: string | null; opens_at?: string | null; closes_at?: string | null; time_limit_minutes?: number | null; status?: PublishStatus; created_by?: string; created_at?: string; updated_at?: string }
         Update: Partial<Database['public']['Tables']['quizzes']['Insert']>
         Relationships: []
       }
       quiz_questions: {
-        Row: { id: string; quiz_id: string; prompt: string; question_type: 'multiple_choice' | 'true_false' | 'short_answer'; options: Json; points: number; position: number; created_at: string }
-        Insert: { id?: string; quiz_id: string; prompt: string; question_type: 'multiple_choice' | 'true_false' | 'short_answer'; options?: Json; points?: number; position?: number; created_at?: string }
+        Row: { id: string; quiz_id: string; prompt: string; question_type: 'multiple_choice' | 'true_false' | 'identification' | 'essay'; options: Json; points: number; position: number; created_at: string }
+        Insert: { id?: string; quiz_id: string; prompt: string; question_type: 'multiple_choice' | 'true_false' | 'identification' | 'essay'; options?: Json; points?: number; position?: number; created_at?: string }
         Update: Partial<Database['public']['Tables']['quiz_questions']['Insert']>
         Relationships: []
       }
@@ -303,8 +310,8 @@ export interface Database {
         Relationships: []
       }
       quiz_attempts: {
-        Row: { id: string; quiz_id: string; student_id: string; answers: Json; score: number | null; max_score: number | null; status: AttemptStatus; started_at: string; submitted_at: string | null }
-        Insert: { id?: string; quiz_id: string; student_id?: string; answers?: Json; score?: number | null; max_score?: number | null; status?: AttemptStatus; started_at?: string; submitted_at?: string | null }
+        Row: { id: string; quiz_id: string; student_id: string; answers: Json; essay_scores: Json; score: number | null; max_score: number | null; status: AttemptStatus; started_at: string; submitted_at: string | null }
+        Insert: { id?: string; quiz_id: string; student_id?: string; answers?: Json; essay_scores?: Json; score?: number | null; max_score?: number | null; status?: AttemptStatus; started_at?: string; submitted_at?: string | null }
         Update: Partial<Database['public']['Tables']['quiz_attempts']['Insert']>
         Relationships: []
       }
@@ -327,6 +334,9 @@ export interface Database {
       can_manage_class: { Args: { target_class_id: string }; Returns: boolean }
       submit_assignment: { Args: { target_assignment_id: string; submission_content: string; submission_file_path: string }; Returns: Database['public']['Tables']['submissions']['Row'] }
       grade_submission: { Args: { target_submission_id: string; awarded_grade: number; grading_feedback: string }; Returns: Database['public']['Tables']['submissions']['Row'] }
+      update_quiz_question: { Args: { target_question_id: string; question_prompt: string; question_type: 'multiple_choice' | 'true_false' | 'identification' | 'essay'; question_options: Json; question_points: number; correct_answer: string }; Returns: Database['public']['Tables']['quiz_questions']['Row'] }
+      grade_quiz_essay: { Args: { target_attempt_id: string; target_question_id: string; awarded_points: number }; Returns: Database['public']['Tables']['quiz_attempts']['Row'] }
+      start_quiz: { Args: { target_quiz_id: string }; Returns: Database['public']['Tables']['quiz_attempts']['Row'] }
       submit_quiz: { Args: { target_quiz_id: string; submitted_answers: Json }; Returns: Database['public']['Tables']['quiz_attempts']['Row'] }
     }
     Enums: {
@@ -351,6 +361,17 @@ export interface ClassSummary {
   school_year: string
   semester: string
   status: string
+  enrolled_student_count: number
   subject: { code: string; title: string } | null
   instructor: { full_name: string } | null
+  schedule: ClassScheduleMeeting[]
+}
+
+export interface ClassScheduleMeeting {
+  class_type: 'LEC' | 'LAB'
+  day_of_week: string
+  start_time: string
+  end_time: string
+  room_code: string
+  building: string
 }

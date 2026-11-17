@@ -17,17 +17,27 @@ not modified by this package.
    - Scope: `user_access_roles.module_code = 'lms'`
 4. Repairs an LMS administrator accidentally stored with numeric `user_id = 0`
    while preserving `user_uid = USER-LMS-ADMIN-0001`.
-5. Records the migrations in the shared `schema_migrations` table.
-6. Supplies verification queries and an optional least-privilege MySQL account
+5. Publishes confirmed Enrollment records as explicit `lms:Student` RBAC grants
+   and active `class_enrollments`, with transaction-scoped triggers for future
+   enrollment approvals and subject changes. It never creates credentials or
+   guesses missing account links.
+6. Grants active instructors an explicit `lms:Instructor` role; assigned-class
+   checks remain enforced by the LMS API.
+7. Adds expiring LMS reset-token metadata to the shared user account while
+   continuing to update the one central `users.password_hash` credential.
+8. Records the migrations in the shared `schema_migrations` table.
+9. Supplies verification queries and an optional least-privilege MySQL account
    template.
 
 ## Important ownership rule
 
 The LMS reads student, employee/instructor, subject, class, schedule, room, and
-enrollment records from their Tier 1 owners. The migration does not manufacture
-enrollment rows. The current supplied database contains zero
-`class_enrollments`; the LMS enrollment projection will therefore remain empty
-until the Enrollment Management System publishes those records.
+enrollment records from their Tier 1 owners. Migration 004 derives LMS
+memberships only from authoritative `Confirmed`
+`enrollments`, `Enrolled` enrollment subjects, blocks, periods, and matching
+active scheduled classes. Approved students without a linked `users.student_id`
+remain without login access until the central Pre-Enrollment/account workflow
+creates and links their credentials.
 
 ## Local test at home (127.0.0.1)
 
@@ -42,9 +52,15 @@ until the Enrollment Management System publishes those records.
    using this combined file.
 3. If the `adfc_lms` row shows `user_id = 0`, import
    `003_repair_lms_administrator_user_id.sql` as a separate repair migration.
-4. Optionally run `verify_lms_migration.sql` from phpMyAdmin to see the detailed
+4. Import `004_publish_enrollment_access.sql` to enable explicit LMS student and
+   instructor RBAC plus confirmed-class publication.
+5. Import `005_add_exams_and_lms_audit_support.sql` to add the Exams category
+   and optimized LMS audit-log retrieval.
+6. Import `006_add_identification_and_essay_grading.sql` to replace short answer
+   with Identification and add instructor-scored Essay questions.
+7. Optionally run `verify_lms_migration.sql` from phpMyAdmin to see the detailed
    checks and retrievable rows.
-5. Alternatively, open PowerShell and run the shared database migrations with:
+6. Alternatively, open PowerShell and run the shared database migrations with:
 
    ```powershell
    & 'C:\xampp\htdocs\LMS\database\migrate_adfc_onecampus_lms_20261117\run_migrations.ps1'
@@ -134,14 +150,22 @@ For phpMyAdmin, import only:
 1. `IMPORT_THIS_IN_PHPMYADMIN.sql` — migrates `adfc_onecampus`
 2. `003_repair_lms_administrator_user_id.sql` — safe separate repair for an
    existing `adfc_lms` row with `user_id = 0`
-3. Optionally import `verify_lms_migration.sql`
+3. `004_publish_enrollment_access.sql`
+4. `005_add_exams_and_lms_audit_support.sql`
+5. `006_add_identification_and_essay_grading.sql`
+6. Optionally import `verify_lms_migration.sql`
 
 The migration package contains these files in order:
 
 1. `001_prepare_lms_shared_data.sql`
 2. `002_create_lms_administrator.sql`
 3. `003_repair_lms_administrator_user_id.sql` is the separate ID repair
-4. `verify_lms_migration.sql` is verification only
+4. `004_publish_enrollment_access.sql` publishes Enrollment-owned access
+5. `005_add_exams_and_lms_audit_support.sql` adds exam classification and LMS
+   audit-log lookup support
+6. `006_add_identification_and_essay_grading.sql` adds Identification and manual
+   Essay grading
+7. `verify_lms_migration.sql` is verification only
 
 All required migrations are idempotent and may be rerun. The administrator
 migration intentionally resets `adfc_lms` to the documented initial password

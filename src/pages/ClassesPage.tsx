@@ -1,8 +1,9 @@
-import { ArrowRight, BookOpen, Clock3, GraduationCap, UsersRound } from 'lucide-react'
+import { ArrowRight, BookOpen, CalendarClock, Clock3, GraduationCap, MapPin, UsersRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { EmptyState, ErrorState, LoadingState } from '../components/ScreenState'
 import { useAuth } from '../hooks/useAuth'
 import { useClasses } from '../hooks/useClasses'
+import { formatScheduleMeeting, scheduleRoomLabel } from '../lib/classSchedule'
 
 export function ClassesPage() {
   const { profile } = useAuth()
@@ -47,7 +48,7 @@ export function ClassesPage() {
             <article key={classItem.id} className="class-card group">
               <div className={`class-card-banner class-banner-${(index % 3) + 1}`}>
                 <div className="grid size-12 place-items-center rounded-2xl bg-white/15 text-white ring-1 ring-white/20"><BookOpen size={24} /></div>
-                <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-white ring-1 ring-white/20">Active</span>
+                <div className="flex flex-col items-end gap-2"><span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-white ring-1 ring-white/20">Active</span><span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-extrabold text-brand-700 shadow-sm"><UsersRound size={14} /> {Number(classItem.enrolled_student_count)} {Number(classItem.enrolled_student_count) === 1 ? 'student' : 'students'}</span></div>
               </div>
               <div className="p-5 sm:p-6">
                 <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-brand-700">{classItem.subject?.code ?? 'Subject'}</p>
@@ -55,6 +56,9 @@ export function ClassesPage() {
                 <div className="mt-5 grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
                   <div className="class-detail"><UsersRound size={16} /><span><small>Section</small>{classItem.section}</span></div>
                   <div className="class-detail"><Clock3 size={16} /><span><small>Semester</small>{classItem.semester}</span></div>
+                </div>
+                <div className="mt-4 space-y-2 rounded-xl bg-slate-50 p-3">
+                  {classItem.schedule.length === 0 ? <p className="text-xs font-semibold text-slate-400">Schedule not yet published</p> : classItem.schedule.map((meeting, meetingIndex) => <div key={`${meeting.day_of_week}-${meeting.start_time}-${meetingIndex}`} className="text-xs text-slate-600"><p className="flex items-center gap-2 font-bold text-slate-700"><CalendarClock size={14} className="text-brand-700" /> {formatScheduleMeeting(meeting)}</p><p className="mt-1 flex items-center gap-2 pl-5"><MapPin size={13} /> {scheduleRoomLabel(meeting)}</p></div>)}
                 </div>
                 <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
                   <div className="min-w-0">

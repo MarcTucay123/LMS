@@ -56,7 +56,13 @@ SET @lms_admin_next_auto_increment := (
     SELECT COALESCE(MAX(user_id), 0) + 1
     FROM users
 );
-ALTER TABLE users AUTO_INCREMENT = @lms_admin_next_auto_increment;
+SET @lms_admin_auto_increment_sql := CONCAT(
+    'ALTER TABLE users AUTO_INCREMENT = ',
+    @lms_admin_next_auto_increment
+);
+PREPARE lms_admin_auto_increment_stmt FROM @lms_admin_auto_increment_sql;
+EXECUTE lms_admin_auto_increment_stmt;
+DEALLOCATE PREPARE lms_admin_auto_increment_stmt;
 
 SET FOREIGN_KEY_CHECKS = @previous_foreign_key_checks;
 

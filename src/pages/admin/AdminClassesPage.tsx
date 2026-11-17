@@ -60,7 +60,7 @@ export function AdminClassesPage() {
         action={<Link className="button-primary" to="/admin/sync"><DatabaseZap size={18} /> Synchronization</Link>}
       />
 
-      <div className="mb-6 flex items-start gap-3 rounded-2xl border-2 border-blue-400 bg-blue-50 p-4 text-sm text-blue-950 shadow-sm shadow-blue-900/10 sm:p-5">
+      <div className="mb-6 flex items-start gap-3 rounded-2xl border border-brand-700 bg-blue-50 p-4 text-sm text-blue-950 shadow-sm shadow-blue-900/10 sm:p-5">
         <LockKeyhole className="mt-0.5 shrink-0 text-brand-700" size={20} />
         <div>
           <p className="font-extrabold">Academic master data is read-only in the LMS</p>

@@ -170,9 +170,9 @@ function storageBucket(bucket: string) {
     async remove(paths: string[]) {
       try { return { data: await request('storage.remove', { bucket, paths }), error: null } } catch (caught) { return { data: null, error: caught as ApiError } }
     },
-    async createSignedUrl(path: string, expiresIn: number) {
+    async createSignedUrl(path: string, expiresIn: number, disposition: 'preview' | 'download' = 'download') {
       try {
-        const data = await request<{ signedUrl: string }>('storage.signed-url', { bucket, path, expiresIn })
+        const data = await request<{ signedUrl: string }>('storage.signed-url', { bucket, path, expiresIn, disposition })
         return { data, error: null }
       } catch (caught) { return { data: { signedUrl: '' }, error: caught as ApiError } }
     },

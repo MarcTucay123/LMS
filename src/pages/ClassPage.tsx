@@ -1,23 +1,26 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowLeft, Eye } from 'lucide-react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { ArrowLeft, CalendarClock, Eye, MapPin } from 'lucide-react'
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { EmptyState, ErrorState, LoadingState } from '../components/ScreenState'
 import { supabase } from '../lib/supabase'
 import type { ClassSummary } from '../types/database'
 import { useAuth } from '../hooks/useAuth'
 import { MaterialsTab } from '../components/classroom/MaterialsTab'
 import { AssignmentsTab } from '../components/classroom/AssignmentsTab'
-import { QuizzesTab } from '../components/classroom/QuizzesTab'
+import { ExamsTab, QuizzesTab } from '../components/classroom/QuizzesTab'
 import { DiscussionsTab } from '../components/classroom/DiscussionsTab'
 import { AnnouncementsTab } from '../components/classroom/AnnouncementsTab'
 import { ProgressTab } from '../components/classroom/ProgressTab'
+import { EnrolledStudentsPanel } from '../components/classroom/StudentsTab'
+import { formatScheduleMeeting, scheduleRoomLabel } from '../lib/classSchedule'
 
-const tabs = ['materials', 'assignments', 'quizzes', 'discussions', 'announcements', 'progress'] as const
+const tabs = ['materials', 'assignments', 'quizzes', 'exams', 'discussions', 'announcements', 'progress'] as const
 type Tab = typeof tabs[number]
 
-type RawClass = Omit<ClassSummary, 'subject' | 'instructor'> & {
+type RawClass = Omit<ClassSummary, 'subject' | 'instructor' | 'schedule'> & {
   subject: ClassSummary['subject'] | NonNullable<ClassSummary['subject']>[]
   instructor: ClassSummary['instructor'] | NonNullable<ClassSummary['instructor']>[]
+  schedule?: ClassSummary['schedule']
 }
 
 function normalizeClass(raw: RawClass): ClassSummary {
@@ -25,17 +28,28 @@ function normalizeClass(raw: RawClass): ClassSummary {
     ...raw,
     subject: Array.isArray(raw.subject) ? raw.subject[0] ?? null : raw.subject,
     instructor: Array.isArray(raw.instructor) ? raw.instructor[0] ?? null : raw.instructor,
+    schedule: raw.schedule ?? [],
   }
 }
 
 export function ClassPage() {
   const { profile } = useAuth()
   const { classId } = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [classItem, setClassItem] = useState<ClassSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
-  const [activeTab, setActiveTab] = useState<Tab>('materials')
+  const requestedTab = searchParams.get('tab')
+  const [activeTab, setActiveTab] = useState<Tab>(tabs.includes(requestedTab as Tab) ? requestedTab as Tab : 'materials')
+
+  const selectTab = (tab: Tab) => {
+    setActiveTab(tab)
+    const next = new URLSearchParams(searchParams)
+    if (tab === 'materials') next.delete('tab')
+    else next.set('tab', tab)
+    setSearchParams(next, { replace: true })
+  }
 
   const load = useCallback(async () => {
     if (!classId) return
@@ -78,21 +92,29 @@ export function ClassPage() {
   return (
     <div>
       <Link className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-brand-700" to="/dashboard"><ArrowLeft size={17} /> Back to dashboard</Link>
-      <section className="card overflow-hidden">
+      <section className="card classroom-outline overflow-hidden">
         <div className="bg-gradient-to-r from-brand-800 to-brand-600 p-4 text-white sm:p-8">
           <p className="text-sm font-bold uppercase tracking-wider text-blue-100">{classItem.subject?.code}</p>
           <h1 className="mt-1 text-xl font-bold sm:text-2xl">{classItem.subject?.title}</h1>
           <p className="mt-3 text-sm text-blue-100">Section {classItem.section} · {classItem.semester}, {classItem.school_year} · {classItem.instructor?.full_name}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {classItem.schedule.length === 0 && <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-blue-100 ring-1 ring-white/20">Schedule not yet published</span>}
+            {classItem.schedule.map((meeting, index) => <span key={`${meeting.day_of_week}-${meeting.start_time}-${index}`} className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white ring-1 ring-white/20"><CalendarClock size={14} /> {formatScheduleMeeting(meeting)} <MapPin size={14} /> {scheduleRoomLabel(meeting)}</span>)}
+          </div>
         </div>
         {isMonitoring && <div className="flex items-start gap-3 border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:px-8"><Eye className="mt-0.5 shrink-0" size={18} /><div><p className="font-extrabold">Administrator monitoring view</p><p className="mt-0.5 text-amber-800">You can inspect classroom content, submissions, gradebook, and progress reports. Only the assigned instructor can create learning content, grade work, post announcements, or moderate discussions.</p></div></div>}
-        <div className="overflow-x-auto border-b border-slate-200 px-4"><div className="flex min-w-max gap-1">{tabs.map((tab) => <button key={tab} onClick={() => setActiveTab(tab)} className={`border-b-2 px-4 py-4 text-sm font-semibold capitalize transition ${activeTab === tab ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{tab}</button>)}</div></div>
-        <div className="p-4 sm:p-8">
-          {activeTab === 'materials' && <MaterialsTab classId={classItem.id} canManage={canManageContent} />}
-          {activeTab === 'assignments' && <AssignmentsTab classId={classItem.id} canManage={canManageContent} canViewReports={canViewReports} isStudent={isStudent} />}
-          {activeTab === 'quizzes' && <QuizzesTab classId={classItem.id} canManage={canManageContent} isStudent={isStudent} />}
-          {activeTab === 'discussions' && <DiscussionsTab classId={classItem.id} canManage={canManageContent} canParticipate={!isMonitoring} />}
-          {activeTab === 'announcements' && <AnnouncementsTab classId={classItem.id} canManage={canManageContent} />}
-          {activeTab === 'progress' && <ProgressTab classId={classItem.id} canViewReports={canViewReports} />}
+        <div className="overflow-x-auto border-b border-slate-200 px-4"><div className="flex min-w-max gap-1">{tabs.map((tab) => <button key={tab} onClick={() => selectTab(tab)} className={`border-b-2 px-4 py-4 text-sm font-semibold capitalize transition ${activeTab === tab ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{tab}</button>)}</div></div>
+        <div className={`grid gap-6 p-4 sm:p-8 ${canViewReports ? 'lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]' : ''}`}>
+          <div className="min-w-0">
+            {activeTab === 'materials' && <MaterialsTab classId={classItem.id} canManage={canManageContent} />}
+            {activeTab === 'assignments' && <AssignmentsTab classId={classItem.id} canManage={canManageContent} canViewReports={canViewReports} isStudent={isStudent} />}
+            {activeTab === 'quizzes' && <QuizzesTab classId={classItem.id} canManage={canManageContent} isStudent={isStudent} />}
+            {activeTab === 'exams' && <ExamsTab classId={classItem.id} canManage={canManageContent} isStudent={isStudent} />}
+            {activeTab === 'discussions' && <DiscussionsTab classId={classItem.id} canManage={canManageContent} canParticipate={!isMonitoring} />}
+            {activeTab === 'announcements' && <AnnouncementsTab classId={classItem.id} canManage={canManageContent} />}
+            {activeTab === 'progress' && <ProgressTab classId={classItem.id} canViewReports={canViewReports} />}
+          </div>
+          {canViewReports && <EnrolledStudentsPanel classId={classItem.id} expectedCount={Number(classItem.enrolled_student_count)} />}
         </div>
       </section>
     </div>

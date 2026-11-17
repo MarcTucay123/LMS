@@ -2,9 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { ClassSummary } from '../types/database'
 
-type RawClass = Omit<ClassSummary, 'subject' | 'instructor'> & {
+type RawClass = Omit<ClassSummary, 'subject' | 'instructor' | 'schedule'> & {
   subject: { code: string; title: string } | { code: string; title: string }[] | null
   instructor: { full_name: string } | { full_name: string }[] | null
+  schedule?: ClassSummary['schedule']
 }
 
 function normalizeRelation<T>(relation: T | T[] | null): T | null {
@@ -27,7 +28,7 @@ export function useClasses() {
     if (queryError) setError(queryError.message)
     else {
       const rows = (data ?? []) as unknown as RawClass[]
-      setClasses(rows.map((row) => ({ ...row, subject: normalizeRelation(row.subject), instructor: normalizeRelation(row.instructor) })))
+      setClasses(rows.map((row) => ({ ...row, subject: normalizeRelation(row.subject), instructor: normalizeRelation(row.instructor), schedule: row.schedule ?? [] })))
     }
     setLoading(false)
   }, [])
@@ -44,7 +45,7 @@ export function useClasses() {
         if (queryError) setError(queryError.message)
         else {
           const rows = (data ?? []) as unknown as RawClass[]
-          setClasses(rows.map((row) => ({ ...row, subject: normalizeRelation(row.subject), instructor: normalizeRelation(row.instructor) })))
+          setClasses(rows.map((row) => ({ ...row, subject: normalizeRelation(row.subject), instructor: normalizeRelation(row.instructor), schedule: row.schedule ?? [] })))
         }
         setLoading(false)
       })

@@ -53,7 +53,7 @@ export function AdminSyncPage() {
           <Link className="button-secondary shrink-0" to="/setup">Database setup/status</Link>
         </div>
       </div>
-      <div className="mb-6 rounded-2xl border-2 border-blue-400 bg-blue-50 p-5 text-sm text-blue-900"><p className="font-bold">No separate LMS database is required</p><p className="mt-1 text-blue-700">This deployment uses <strong>adfc_onecampus</strong> directly. On the LMS server, start Apache only; MySQL runs on the OneCampus database server.</p></div>
+      <div className="mb-6 rounded-2xl border border-brand-700 bg-blue-50 p-5 text-sm text-blue-900"><p className="font-bold">No separate LMS database is required</p><p className="mt-1 text-blue-700">This deployment uses <strong>adfc_onecampus</strong> directly. On the LMS server, start Apache only; MySQL runs on the OneCampus database server.</p></div>
       {loading && <LoadingState label="Loading synchronization history…" />}
       {error && <ErrorState message={error} onRetry={() => void load()} />}
       {!loading && !error && logs.length === 0 && <EmptyState title="No synchronization required" description="Shared records are read directly from adfc_onecampus." />}

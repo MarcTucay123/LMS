@@ -15,6 +15,8 @@ $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' :
 $host = (string)($_SERVER['HTTP_HOST'] ?? 'localhost');
 $defaultAppUrl = $scheme . '://' . $host . $detectedAppPath;
 $config = [
+    'app_timezone' => getenv('LMS_APP_TIMEZONE') ?: 'Asia/Manila',
+    'database_timezone' => getenv('LMS_DATABASE_TIMEZONE') ?: '+08:00',
     'db_host' => getenv('LMS_DB_HOST') ?: '192.168.109.117',
     'db_port' => getenv('LMS_DB_PORT') ?: '3306',
     'db_name' => getenv('LMS_DB_NAME') ?: 'adfc_onecampus',

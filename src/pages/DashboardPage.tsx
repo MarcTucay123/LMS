@@ -4,9 +4,13 @@ import {
   BadgeCheck,
   BookOpen,
   CalendarDays,
+  CalendarClock,
   Clock3,
+  ClipboardCheck,
+  ChevronRight,
   GraduationCap,
   Layers3,
+  MapPin,
   Sparkles,
   UsersRound,
 } from 'lucide-react'
@@ -14,6 +18,9 @@ import { Link } from 'react-router-dom'
 import { EmptyState, ErrorState, LoadingState } from '../components/ScreenState'
 import { useAuth } from '../hooks/useAuth'
 import { useClasses } from '../hooks/useClasses'
+import { useStudentTodo } from '../hooks/useStudentTodo'
+import { formatScheduleMeeting, scheduleRoomLabel } from '../lib/classSchedule'
+import { StudentTodoRow } from '../components/StudentTodoRow'
 
 const roleLabels = { student: 'Student', instructor: 'Instructor', admin: 'Administrator' } as const
 
@@ -31,6 +38,7 @@ export function DashboardPage() {
   const { profile } = useAuth()
   const { classes, loading, error, reload } = useClasses()
   const [now, setNow] = useState(() => new Date())
+  const { grouped: todo, loading: todoLoading, error: todoError } = useStudentTodo(classes, profile?.role === 'student' && !loading && !error)
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000)
@@ -44,6 +52,7 @@ export function DashboardPage() {
   const classLabel = profile.role === 'admin' ? 'Active class offerings' : profile.role === 'instructor' ? 'Classes handled' : 'Classes enrolled'
   const primaryYear = academicYears[0] ?? 'Not assigned'
   const primarySemester = semesters[0] ?? 'No active semester'
+  const dueSoon = todo.assigned.filter((item) => item.dueAt && new Date(item.dueAt).getTime() >= now.getTime() && new Date(item.dueAt).getTime() <= now.getTime() + 7 * 24 * 60 * 60 * 1000).slice(0, 5)
 
   return (
     <div className="mx-auto max-w-[1500px]">
@@ -106,6 +115,11 @@ export function DashboardPage() {
         </article>
       </section>
 
+      {profile.role === 'student' && <section className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-7"><div className="flex items-center gap-3"><div className="grid size-10 place-items-center rounded-xl bg-blue-50 text-brand-700"><ClipboardCheck size={20} /></div><div><h2 className="text-xl font-black text-slate-900">Due soon</h2><p className="text-xs text-slate-500">Unfinished work due in the next seven days</p></div></div><Link to="/to-do" className="inline-flex items-center gap-1 text-sm font-extrabold text-brand-700 hover:text-brand-800">View to-do <ChevronRight size={17} /></Link></div>
+        {todoLoading ? <div className="p-5 sm:p-7"><LoadingState label="Checking upcoming work…" /></div> : todoError ? <div className="p-5 text-sm font-semibold text-red-600 sm:p-7">{todoError}</div> : dueSoon.length ? <div className="divide-y divide-slate-100">{dueSoon.map((item) => <StudentTodoRow key={`${item.kind}-${item.id}`} item={item} compact />)}</div> : <p className="px-5 py-10 text-center text-sm font-semibold text-slate-500 sm:px-7">You don't have any work due in the next seven days.</p>}
+      </section>}
+
       <section id="classes" className="mt-8 scroll-mt-28">
         <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
           <div>
@@ -125,7 +139,7 @@ export function DashboardPage() {
               <article key={classItem.id} className="class-card group">
                 <div className={`class-card-banner class-banner-${(index % 3) + 1}`}>
                   <div className="grid size-12 place-items-center rounded-2xl bg-white/15 text-white ring-1 ring-white/20"><BookOpen size={24} /></div>
-                  <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-white ring-1 ring-white/20">Active</span>
+                  <div className="flex flex-col items-end gap-2"><span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-white ring-1 ring-white/20">Active</span><span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-extrabold text-brand-700 shadow-sm"><UsersRound size={14} /> {Number(classItem.enrolled_student_count)} {Number(classItem.enrolled_student_count) === 1 ? 'student' : 'students'}</span></div>
                 </div>
                 <div className="p-5 sm:p-6">
                   <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-brand-700">{classItem.subject?.code ?? 'Subject'}</p>
@@ -133,6 +147,9 @@ export function DashboardPage() {
                   <div className="mt-5 grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
                     <div className="class-detail"><UsersRound size={16} /><span><small>Section</small>{classItem.section}</span></div>
                     <div className="class-detail"><Clock3 size={16} /><span><small>Semester</small>{classItem.semester}</span></div>
+                  </div>
+                  <div className="mt-4 space-y-2 rounded-xl bg-slate-50 p-3">
+                    {classItem.schedule.length === 0 ? <p className="text-xs font-semibold text-slate-400">Schedule not yet published</p> : classItem.schedule.map((meeting, meetingIndex) => <div key={`${meeting.day_of_week}-${meeting.start_time}-${meetingIndex}`} className="text-xs text-slate-600"><p className="flex items-center gap-2 font-bold text-slate-700"><CalendarClock size={14} className="text-brand-700" /> {formatScheduleMeeting(meeting)}</p><p className="mt-1 flex items-center gap-2 pl-5"><MapPin size={13} /> {scheduleRoomLabel(meeting)}</p></div>)}
                   </div>
                   <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
                     <div className="min-w-0"><p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Instructor</p><p className="truncate text-sm font-semibold text-slate-700">{classItem.instructor?.full_name ?? 'Not assigned'}</p></div>

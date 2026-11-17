@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Award, BarChart3 } from 'lucide-react'
+import { Award, BarChart3, Printer } from 'lucide-react'
 import { EmptyState, ErrorState, LoadingState } from '../ScreenState'
 import { ScoreBar } from '../ScoreBar'
 import { useAuth } from '../../hooks/useAuth'
@@ -73,8 +73,13 @@ export function ProgressTab({ classId, canViewReports }: { classId: string; canV
   if (error) return <ErrorState message={error} onRetry={() => void load()} />
   if (!assignments.length && !quizzes.length) return <EmptyState title="No graded activities" description="Progress will appear after assignments or quizzes are published." />
 
-  return <section>
-    <TabHeading title={canViewReports ? 'Class gradebook' : 'My progress'} description={canViewReports ? 'Review assignment and quiz performance for enrolled students.' : 'See your available scores across class activities.'} />
+  return <section className="progress-print-report">
+    <div className="hidden print-report-heading">
+      <p>ADFC OneCampus Learning Management System</p>
+      <h1>Class Progress Report</h1>
+      <span>Generated {new Date().toLocaleString()}</span>
+    </div>
+    <TabHeading title={canViewReports ? 'Class gradebook' : 'My progress'} description={canViewReports ? 'Review assignment and quiz performance for enrolled students.' : 'See your available scores across class activities.'} action={canViewReports && <button type="button" className="button-primary print-hidden" onClick={() => window.print()}><Printer size={17} /> Print progress report</button>} />
     {!canViewReports && ownResult && <div className="grid gap-4 md:grid-cols-3"><ProgressCard label="Overall score" icon={<Award />}><ScoreBar earned={ownResult.earned} possible={ownResult.possible} label="Overall" compact /></ProgressCard><ProgressCard label="Points earned" icon={<BarChart3 />}><ScoreBar earned={ownResult.earned} possible={ownResult.possible} label="Points" compact /></ProgressCard><ProgressCard label="Completed" icon={<BarChart3 />}><ScoreBar earned={ownResult.completed} possible={assignments.length + quizzes.length} label="Activities" compact /></ProgressCard></div>}
     {canViewReports && <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white"><div className="overflow-x-auto"><table className="admin-table"><thead><tr><th>Student</th><th>Assignment points</th><th>Quiz points</th><th>Completed</th><th>Overall</th></tr></thead><tbody>{students.map((student) => { const result = calculate(student.id, assignments, quizzes, questions, submissions, attempts); const assignmentPossible = assignments.reduce((sum, item) => sum + Number(item.points), 0); const assignmentEarned = submissions.filter((item) => item.student_id === student.id).reduce((sum, item) => sum + Number(item.grade ?? 0), 0); const quizPossible = questions.reduce((sum, item) => sum + Number(item.points), 0); const quizEarned = attempts.filter((item) => item.student_id === student.id).reduce((sum, item) => sum + Number(item.score ?? 0), 0); return <tr key={student.id}><td data-label="Student"><p className="font-bold text-slate-800">{student.full_name}</p><p className="text-xs text-slate-400">{student.school_id}</p></td><td data-label="Assignment points"><ScoreBar earned={assignmentEarned} possible={assignmentPossible} label="Assignments" compact /></td><td data-label="Quiz points"><ScoreBar earned={quizEarned} possible={quizPossible} label="Quizzes" compact /></td><td data-label="Completed"><ScoreBar earned={result.completed} possible={assignments.length + quizzes.length} label="Activities" compact /></td><td data-label="Overall"><ScoreBar earned={result.earned} possible={result.possible} label="Overall" compact /></td></tr>})}</tbody></table></div>{students.length === 0 && <div className="p-4 sm:p-6"><EmptyState title="No enrolled students" description="The gradebook will populate after enrollment sync." /></div>}</div>}
     <p className="mt-4 text-xs text-slate-400">Only graded assignments and submitted quizzes contribute to earned points. Published activity points define the available total. {maximum === 0 ? 'No points are available yet.' : ''}</p>

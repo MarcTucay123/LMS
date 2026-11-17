@@ -5,7 +5,7 @@ import { AssignmentsTab } from '../components/classroom/AssignmentsTab'
 import { DiscussionsTab } from '../components/classroom/DiscussionsTab'
 import { MaterialsTab } from '../components/classroom/MaterialsTab'
 import { ProgressTab } from '../components/classroom/ProgressTab'
-import { QuizzesTab } from '../components/classroom/QuizzesTab'
+import { ExamsTab, QuizzesTab } from '../components/classroom/QuizzesTab'
 import { EmptyState, ErrorState, LoadingState } from '../components/ScreenState'
 import { useAuth } from '../hooks/useAuth'
 import { useClasses } from '../hooks/useClasses'
@@ -22,6 +22,10 @@ const workspaceSections = {
   quizzes: {
     label: 'Online quizzes',
     description: 'Scheduled class quizzes, objective scoring, attempts, and results.',
+  },
+  exams: {
+    label: 'Exams',
+    description: 'Prelim, midterm, semi-final, final, and custom class examinations.',
   },
   discussions: {
     label: 'Discussions',
@@ -96,7 +100,7 @@ export function WorkspacePage() {
         <EmptyState title="No class workspace available" description="No active class is assigned or enrolled through OneCampus." />
       )}
       {!loading && !error && selectedClass && (
-        <section className="card overflow-hidden">
+        <section className="card classroom-outline overflow-hidden">
           <div className="flex flex-col justify-between gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:items-center sm:px-6">
             <div className="flex min-w-0 items-center gap-3">
               <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-100 text-brand-700"><BookOpen size={19} /></div>
@@ -114,6 +118,7 @@ export function WorkspacePage() {
             {section === 'materials' && <MaterialsTab classId={selectedClass.id} canManage={canManageContent} />}
             {section === 'assignments' && <AssignmentsTab classId={selectedClass.id} canManage={canManageContent} canViewReports={canViewReports} isStudent={isStudent} />}
             {section === 'quizzes' && <QuizzesTab classId={selectedClass.id} canManage={canManageContent} isStudent={isStudent} />}
+            {section === 'exams' && <ExamsTab classId={selectedClass.id} canManage={canManageContent} isStudent={isStudent} />}
             {section === 'discussions' && <DiscussionsTab classId={selectedClass.id} canManage={canManageContent} canParticipate={!isMonitoring} />}
             {section === 'announcements' && <AnnouncementsTab classId={selectedClass.id} canManage={canManageContent} />}
             {section === 'progress' && <ProgressTab classId={selectedClass.id} canViewReports={canViewReports} />}

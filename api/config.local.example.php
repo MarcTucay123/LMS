@@ -2,6 +2,9 @@
 declare(strict_types=1);
 
 return [
+    // Campus-local timezone used for schedules stored in MySQL DATETIME fields.
+    'app_timezone' => 'Asia/Manila',
+    'database_timezone' => '+08:00',
     // Unified deployment: the LMS uses the existing adfc_onecampus connection.
     'db_host' => '192.168.109.117',
     'db_port' => '3306',

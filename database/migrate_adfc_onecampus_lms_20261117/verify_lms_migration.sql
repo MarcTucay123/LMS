@@ -1,4 +1,4 @@
--- Run after 001, 002, and 003. Every failed_check value should be 0.
+-- Run after migrations 001 through 004. Every failed_check value should be 0.
 
 USE `adfc_onecampus`;
 
@@ -32,7 +32,41 @@ UNION ALL
 SELECT 'lms_admin_missing_user_uid', COUNT(*)
 FROM users
 WHERE username = 'adfc_lms'
-  AND (user_uid IS NULL OR TRIM(user_uid) = '');
+  AND (user_uid IS NULL OR TRIM(user_uid) = '')
+UNION ALL
+SELECT 'confirmed_students_missing_lms_role', COUNT(*)
+FROM enrollments e
+JOIN users u ON u.student_id=e.student_id
+WHERE e.enrollment_status='Confirmed'
+  AND NOT EXISTS (
+      SELECT 1 FROM user_access_roles uar
+      JOIN access_roles ar ON ar.role_id=uar.role_id
+      WHERE uar.user_id=u.user_id AND uar.module_code='lms'
+        AND ar.role_name='Student' AND ar.is_active=1
+  )
+UNION ALL
+SELECT 'confirmed_subjects_missing_active_membership', COUNT(*)
+FROM enrollments e
+JOIN enrollment_subjects es ON es.enrollment_id=e.enrollment_id AND es.subject_status='Enrolled'
+JOIN blocks b ON b.block_id=e.block_id
+JOIN academic_classes c ON c.period_id=e.period_id AND c.subject_id=es.subject_id AND c.section=b.block_code
+LEFT JOIN class_enrollments ce ON ce.student_id=e.student_id AND ce.class_id=c.class_id AND ce.membership_status='Active'
+WHERE e.enrollment_status='Confirmed' AND c.status='Active' AND ce.enrollment_id IS NULL
+UNION ALL
+SELECT 'missing_quiz_assessment_kind_column', IF(COUNT(*) = 1, 0, 1)
+FROM information_schema.columns
+WHERE table_schema=DATABASE() AND table_name='quizzes' AND column_name='assessment_kind'
+UNION ALL
+SELECT 'missing_quiz_exam_type_column', IF(COUNT(*) = 1, 0, 1)
+FROM information_schema.columns
+WHERE table_schema=DATABASE() AND table_name='quizzes' AND column_name='exam_type'
+UNION ALL
+SELECT 'missing_quiz_attempt_essay_scores_column', IF(COUNT(*) = 1, 0, 1)
+FROM information_schema.columns
+WHERE table_schema=DATABASE() AND table_name='quiz_attempts' AND column_name='essay_scores'
+UNION ALL
+SELECT 'legacy_short_answer_questions', COUNT(*)
+FROM quiz_questions WHERE question_type='short_answer';
 
 SELECT 'vw_lms_users' AS projection, COUNT(*) AS row_count FROM vw_lms_users
 UNION ALL

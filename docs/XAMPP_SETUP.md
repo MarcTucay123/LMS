@@ -106,7 +106,7 @@ Uploads are written beneath `D:\LMS\storage\uploads\materials` and `D:\LMS\stora
 
 These files are outside `htdocs`. Downloads use short-lived session-bound URLs and are re-authorized by class membership, ownership, or class-manager permission.
 
-Supported upload extensions are PDF, DOCX, and ZIP, with a 10 MB application limit. PHP/XAMPP `upload_max_filesize` and `post_max_size` must be at least as large.
+Supported upload extensions are PDF, DOC, DOCX, ODT, RTF, TXT, and ZIP, with a 10 MB application limit. PHP/XAMPP `upload_max_filesize` and `post_max_size` must be at least as large.
 
 ## 9. Validation commands
 

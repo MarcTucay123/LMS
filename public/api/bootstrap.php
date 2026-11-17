@@ -3,6 +3,10 @@ declare(strict_types=1);
 
 $config = require __DIR__ . '/config.php';
 
+if (!date_default_timezone_set((string)$config['app_timezone'])) {
+    throw new RuntimeException('The configured LMS timezone is invalid.');
+}
+
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_name('adfc_lms_session');
     session_set_cookie_params([
@@ -35,6 +39,7 @@ function onecampus_connection_config(): array
 
 function onecampus_db(?array $connection = null): PDO
 {
+    global $config;
     static $connections = [];
     $selected = $connection ?? onecampus_connection_config();
     if (($selected['host'] ?? '') === '' || ($selected['user'] ?? '') === '') throw new RuntimeException('The OneCampus database connection is not configured.');
@@ -52,6 +57,11 @@ function onecampus_db(?array $connection = null): PDO
         PDO::ATTR_EMULATE_PREPARES => false,
         PDO::ATTR_TIMEOUT => 4,
     ]);
+    $databaseTimezone = (string)($config['database_timezone'] ?? '+08:00');
+    if (!preg_match('/^[+-](?:0\d|1[0-4]):[0-5]\d$/', $databaseTimezone)) {
+        throw new RuntimeException('The configured database timezone is invalid.');
+    }
+    $pdo->exec("SET time_zone = " . $pdo->quote($databaseTimezone));
     $connections[$connectionKey] = $pdo;
     return $connections[$connectionKey];
 }
@@ -90,7 +100,11 @@ function uuid(): string
 function sql_datetime(?string $value): ?string
 {
     if ($value === null || trim($value) === '') return null;
-    try { return (new DateTimeImmutable($value))->format('Y-m-d H:i:s'); }
+    try {
+        global $config;
+        $timezone = new DateTimeZone((string)$config['app_timezone']);
+        return (new DateTimeImmutable($value))->setTimezone($timezone)->format('Y-m-d H:i:s');
+    }
     catch (Throwable) { fail('A supplied date is invalid.'); }
 }
 
@@ -109,17 +123,39 @@ function user_payload(array $user): array
     ];
 }
 
+function lms_role_sql(string $userAlias = 'u', string $instructorAlias = 'i', string $studentAlias = 's'): string
+{
+    return "CASE
+        WHEN EXISTS (
+            SELECT 1 FROM user_access_roles uar
+            JOIN access_roles ar ON ar.role_id=uar.role_id
+            WHERE uar.user_id={$userAlias}.user_id
+              AND uar.module_code IN ('lms','enrollment','scheduling')
+              AND ar.role_name='Administrator' AND ar.is_active=1
+        ) THEN 'admin'
+        WHEN {$instructorAlias}.instructor_id IS NOT NULL AND {$instructorAlias}.is_active=1 AND EXISTS (
+            SELECT 1 FROM academic_classes ac
+            WHERE ac.instructor_id={$instructorAlias}.instructor_id
+              AND ac.status='Active'
+        ) THEN 'instructor'
+        WHEN {$studentAlias}.student_id IS NOT NULL AND {$studentAlias}.record_status='Active' AND EXISTS (
+            SELECT 1 FROM enrollments e
+            WHERE e.student_id={$studentAlias}.student_id
+              AND e.enrollment_status='Confirmed'
+        ) THEN 'student'
+        ELSE NULL END";
+}
+
 function session_payload(): ?array
 {
     $id = current_user_id();
     if ($id === null) return null;
-    $stmt = db()->prepare("SELECT CAST(u.user_id AS CHAR) id,LOWER(u.email) email,
-        CASE WHEN EXISTS (
-            SELECT 1 FROM user_access_roles uar
-            JOIN access_roles ar ON ar.role_id=uar.role_id
-            WHERE uar.user_id=u.user_id AND uar.module_code='lms' AND LOWER(ar.role_name) LIKE '%admin%'
-        ) THEN 'admin' WHEN i.instructor_id IS NOT NULL THEN 'instructor' ELSE 'student' END requested_role
-        FROM users u LEFT JOIN instructors i ON i.user_id=u.user_id WHERE u.user_id=?");
+    $roleSql = lms_role_sql();
+    $stmt = db()->prepare("SELECT CAST(u.user_id AS CHAR) id,LOWER(u.email) email,{$roleSql} requested_role
+        FROM users u
+        LEFT JOIN instructors i ON i.user_id=u.user_id
+        LEFT JOIN students s ON s.student_id=u.student_id
+        WHERE u.user_id=?");
     $stmt->execute([$id]);
     $user = $stmt->fetch();
     if (!$user) return null;
@@ -130,20 +166,15 @@ function require_user(): array
 {
     $id = current_user_id();
     if ($id === null) fail('Authentication is required.', 401);
+    $roleSql = lms_role_sql();
     $stmt = db()->prepare("SELECT CAST(u.user_id AS CHAR) id,LOWER(u.email) email,
-        CASE WHEN EXISTS (
-            SELECT 1 FROM user_access_roles uar
-            JOIN access_roles ar ON ar.role_id=uar.role_id
-            WHERE uar.user_id=u.user_id AND uar.module_code='lms' AND LOWER(ar.role_name) LIKE '%admin%'
-        ) THEN 'admin' WHEN i.instructor_id IS NOT NULL THEN 'instructor' ELSE 'student' END requested_role,
-        CASE WHEN EXISTS (
-            SELECT 1 FROM user_access_roles uar
-            JOIN access_roles ar ON ar.role_id=uar.role_id
-            WHERE uar.user_id=u.user_id AND uar.module_code='lms' AND LOWER(ar.role_name) LIKE '%admin%'
-        ) THEN 'admin' WHEN i.instructor_id IS NOT NULL THEN 'instructor' ELSE 'student' END role,
+        {$roleSql} requested_role,{$roleSql} role,
         CASE WHEN u.status='Active' THEN 'active' ELSE 'inactive' END status,u.full_name,u.user_uid,
         u.student_id,i.instructor_id
-        FROM users u LEFT JOIN instructors i ON i.user_id=u.user_id WHERE u.user_id=?");
+        FROM users u
+        LEFT JOIN instructors i ON i.user_id=u.user_id
+        LEFT JOIN students s ON s.student_id=u.student_id
+        WHERE u.user_id=?");
     $stmt->execute([$id]);
     $user = $stmt->fetch();
     if (!$user) fail('Invalid session.', 401);
@@ -153,7 +184,8 @@ function require_user(): array
 function require_active_user(): array
 {
     $user = require_user();
-    if (!$user['role'] || $user['status'] !== 'active') fail('Your account is not active.', 403);
+    if (!$user['role']) fail('Your account has not been granted access to the LMS.', 403);
+    if ($user['status'] !== 'active') fail('Your account is not active.', 403);
     return $user;
 }
 
@@ -173,7 +205,13 @@ function class_access(string $classId, ?array $user = null): bool
         $stmt->execute([$classId, $user['instructor_id']]);
         return (bool)$stmt->fetchColumn();
     }
-    $stmt = db()->prepare("SELECT 1 FROM class_enrollments e JOIN academic_classes c ON c.class_id=e.class_id WHERE c.class_uid=? AND e.student_id=? AND e.membership_status='Active'");
+    $stmt = db()->prepare("SELECT 1
+        FROM academic_classes c
+        JOIN blocks b ON b.block_code=c.section
+        JOIN enrollments e ON e.period_id=c.period_id AND e.block_id=b.block_id
+        JOIN enrollment_subjects es ON es.enrollment_id=e.enrollment_id AND es.subject_id=c.subject_id
+        WHERE c.class_uid=? AND e.student_id=?
+          AND c.status='Active' AND e.enrollment_status='Confirmed' AND es.subject_status='Enrolled'");
     $stmt->execute([$classId, $user['student_id']]);
     return (bool)$stmt->fetchColumn();
 }
@@ -210,12 +248,12 @@ function require_class_manager(string $classId): array
 function class_id_for_record(string $table, string $id): ?string
 {
     $queries = [
-        'materials' => 'SELECT class_id FROM materials WHERE id=?',
-        'announcements' => 'SELECT class_id FROM announcements WHERE id=?',
-        'discussion_topics' => 'SELECT class_id FROM discussion_topics WHERE id=?',
-        'discussion_posts' => 'SELECT t.class_id FROM discussion_posts p JOIN discussion_topics t ON t.id=p.topic_id WHERE p.id=?',
-        'assignments' => 'SELECT class_id FROM assignments WHERE id=?',
-        'submissions' => 'SELECT a.class_id FROM submissions s JOIN assignments a ON a.id=s.assignment_id WHERE s.id=?',
+        'materials' => 'SELECT class_id FROM learning_materials WHERE id=?',
+        'announcements' => "SELECT c.class_uid FROM announcements a JOIN academic_classes c ON c.class_id=a.class_id WHERE a.announcement_id=? AND a.module_code='lms'",
+        'discussion_topics' => 'SELECT class_id FROM learning_discussion_topics WHERE id=?',
+        'discussion_posts' => 'SELECT t.class_id FROM learning_discussion_posts p JOIN learning_discussion_topics t ON t.id=p.topic_id WHERE p.id=?',
+        'assignments' => 'SELECT class_id FROM learning_assignments WHERE id=?',
+        'submissions' => 'SELECT a.class_id FROM assignment_submissions s JOIN learning_assignments a ON a.id=s.assignment_id WHERE s.id=?',
         'quizzes' => 'SELECT class_id FROM quizzes WHERE id=?',
         'quiz_questions' => 'SELECT q.class_id FROM quiz_questions qq JOIN quizzes q ON q.id=qq.quiz_id WHERE qq.id=?',
         'quiz_answer_keys' => 'SELECT q.class_id FROM quiz_answer_keys k JOIN quiz_questions qq ON qq.id=k.question_id JOIN quizzes q ON q.id=qq.quiz_id WHERE k.question_id=?',
@@ -228,10 +266,37 @@ function class_id_for_record(string $table, string $id): ?string
     return is_string($value) ? $value : null;
 }
 
+function content_table(string $table): string
+{
+    return match ($table) {
+        'materials' => 'learning_materials',
+        'discussion_topics' => 'learning_discussion_topics',
+        'discussion_posts' => 'learning_discussion_posts',
+        'assignments' => 'learning_assignments',
+        'submissions' => 'assignment_submissions',
+        default => $table,
+    };
+}
+
+function user_uid(array $user): string
+{
+    $value = (string)($user['user_uid'] ?? '');
+    if ($value === '') fail('Your account is missing its stable OneCampus identifier.', 409);
+    return $value;
+}
+
 function normalize_row(string $table, array $row): array
 {
     foreach ($row as $key => $value) {
-        if (in_array($key, ['options','answers','records'], true) && is_string($value)) {
+        if (is_string($value) && in_array($key, [
+            'opens_at', 'closes_at', 'due_at', 'started_at', 'submitted_at', 'graded_at',
+            'created_at', 'updated_at', 'published_at', 'occurred_at',
+        ], true) && preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $value)) {
+            global $config;
+            $timezone = new DateTimeZone((string)$config['app_timezone']);
+            $row[$key] = (new DateTimeImmutable($value, $timezone))->format(DATE_ATOM);
+        }
+        if (in_array($key, ['options','answers','essay_scores','records'], true) && is_string($value)) {
             $row[$key] = json_decode($value, true) ?? ($key === 'options' ? [] : []);
         }
         if ($key === 'is_locked' || $key === 'case_sensitive') $row[$key] = (bool)$value;
@@ -247,6 +312,37 @@ function fetch_all(string $sql, array $params = [], string $table = ''): array
     $stmt = db()->prepare($sql);
     $stmt->execute($params);
     return array_map(fn(array $row) => normalize_row($table, $row), $stmt->fetchAll());
+}
+
+function lms_audit(string $action, ?string $recordType, ?string $recordId, string $description, ?array $oldValues = null, ?array $newValues = null, ?array $actor = null): void
+{
+    $actor ??= require_active_user();
+    $details = $recordId === null ? null : ['record_id' => $recordId];
+    $oldValues = audit_safe_values($oldValues);
+    $newValues = audit_safe_values($newValues);
+    $statement = db()->prepare("INSERT INTO activity_logs
+        (module_code,details_json,old_values_json,new_values_json,admin_user_id,action,record_type,record_id,description,ip_address,details_text,actor_role,user_agent)
+        VALUES ('lms',?,?,?,?,?,?,NULL,?,?,?,?,?)");
+    $statement->execute([
+        $details ? json_encode($details, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
+        $oldValues ? json_encode($oldValues, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
+        $newValues ? json_encode($newValues, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
+        $actor['id'] ?? null,
+        mb_substr($action, 0, 60),
+        $recordType ? mb_substr($recordType, 0, 60) : null,
+        mb_substr($description, 0, 255),
+        mb_substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45) ?: null,
+        $description,
+        $actor['role'] ?? null,
+        mb_substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255) ?: null,
+    ]);
+}
+
+function audit_safe_values(?array $values): ?array
+{
+    if ($values === null) return null;
+    foreach (['correct_answer', 'answers', 'password', 'password_hash', 'reset_token_hash'] as $sensitiveKey) unset($values[$sensitiveKey]);
+    return $values;
 }
 
 function filter_value(array $filters, string $column, string $type = 'eq'): mixed
