@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, CircleCheckBig, CircleX, Database, Eye, EyeOff, LoaderCircle, LockKeyhole, Network, RefreshCw, Server, Unplug, UserRound } from 'lucide-react'
 import { useOneCampusSetup } from '../hooks/useOneCampusSetup'
 import { supabase } from '../lib/supabase'
+import { ThemeToggle } from '../components/ThemeToggle'
 
 interface ConnectionStatus {
   configured: boolean
@@ -114,7 +115,8 @@ export function OneCampusSetupPage() {
   }
 
   return (
-    <main className="min-h-screen bg-auth-pattern px-3 py-6 sm:px-4 sm:py-12">
+    <main className="relative min-h-screen bg-auth-pattern px-3 py-16 sm:px-4 sm:py-12">
+      <ThemeToggle className="absolute right-3 top-3 border-white/25 bg-slate-950/25 text-white hover:bg-slate-950/40 sm:right-5 sm:top-5" />
       <div className="mx-auto w-full max-w-xl rounded-2xl bg-white p-5 shadow-2xl shadow-slate-950/20 sm:p-8">
         <div className="mb-6">
           <div className="mb-4 flex items-center gap-3">

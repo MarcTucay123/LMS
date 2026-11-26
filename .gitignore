@@ -10,4 +10,6 @@ api/onecampus.setup.php
 storage/uploads
 database/exports
 database/adfc_onecampus_updated (1).sql
+database/adfc_onecampus (2).sql
+database/rollback_backups/
 ~$*.docx

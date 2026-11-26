@@ -12,7 +12,7 @@ import {
   Server,
   UserRound,
 } from 'lucide-react'
-import { pendingRoleCheckKey, roleLabels, type LoginPortal } from '../lib/auth'
+import { inactivityLogoutKey, pendingRoleCheckKey, roleLabels, type LoginPortal } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 
 const portalDetails: Record<LoginPortal, { title: string; description: string; icon: typeof UserRound }> = {
@@ -49,7 +49,12 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking')
   const [databaseServer, setDatabaseServer] = useState<string | null>(null)
-  const message = (location.state as { message?: string } | null)?.message
+  const [sessionMessage] = useState(() => {
+    const value = window.sessionStorage.getItem(inactivityLogoutKey)
+    window.sessionStorage.removeItem(inactivityLogoutKey)
+    return value
+  })
+  const message = (location.state as { message?: string } | null)?.message ?? sessionMessage
   const details = portalDetails[portal]
   const PortalIcon = details.icon
 

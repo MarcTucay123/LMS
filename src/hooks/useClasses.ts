@@ -4,7 +4,7 @@ import type { ClassSummary } from '../types/database'
 
 type RawClass = Omit<ClassSummary, 'subject' | 'instructor' | 'schedule'> & {
   subject: { code: string; title: string } | { code: string; title: string }[] | null
-  instructor: { full_name: string } | { full_name: string }[] | null
+  instructor: { full_name: string; avatar_path: string | null } | { full_name: string; avatar_path: string | null }[] | null
   schedule?: ClassSummary['schedule']
 }
 
@@ -22,7 +22,7 @@ export function useClasses() {
     setError(null)
     const { data, error: queryError } = await supabase
       .from('classes')
-      .select('id, instructor_id, section, school_year, semester, status, subject:subjects(code, title), instructor:profiles!classes_instructor_id_fkey(full_name)')
+      .select('id, instructor_id, section, school_year, semester, status, subject:subjects(code, title), instructor:profiles!classes_instructor_id_fkey(full_name, avatar_path)')
       .eq('status', 'active')
       .order('created_at')
     if (queryError) setError(queryError.message)
@@ -37,7 +37,7 @@ export function useClasses() {
     let active = true
     void supabase
       .from('classes')
-      .select('id, instructor_id, section, school_year, semester, status, subject:subjects(code, title), instructor:profiles!classes_instructor_id_fkey(full_name)')
+      .select('id, instructor_id, section, school_year, semester, status, subject:subjects(code, title), instructor:profiles!classes_instructor_id_fkey(full_name, avatar_path)')
       .eq('status', 'active')
       .order('created_at')
       .then(({ data, error: queryError }) => {

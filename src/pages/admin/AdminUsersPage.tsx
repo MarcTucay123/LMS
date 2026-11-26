@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Search, UserCog, UsersRound } from 'lucide-react'
+import { Search, UsersRound } from 'lucide-react'
 import { AdminPageHeader } from '../../components/AdminPageHeader'
+import { ProfileAvatar } from '../../components/ProfileAvatar'
 import { EmptyState, ErrorState, LoadingState } from '../../components/ScreenState'
 import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../lib/supabase'
@@ -103,7 +104,7 @@ function UserRow({ user, isSelf, saving, onSave }: { user: Profile; isSelf: bool
 
   return (
     <tr>
-      <td data-label="User"><div className="flex min-w-0 items-center gap-3"><div className="grid size-10 shrink-0 place-items-center rounded-full bg-blue-50 font-bold text-brand-700"><UserCog size={18} /></div><div className="min-w-0"><p className="break-words font-bold text-slate-900">{user.full_name}{isSelf && <span className="ml-2 text-xs text-brand-700">You</span>}</p><p className="break-all text-xs text-slate-500">{user.email}</p></div></div></td>
+      <td data-label="User"><div className="flex min-w-0 items-center gap-3"><ProfileAvatar name={user.full_name} avatarPath={user.avatar_path} className="size-10 text-xs" /><div className="min-w-0"><p className="break-words font-bold text-slate-900">{user.full_name}{isSelf && <span className="ml-2 text-xs text-brand-700">You</span>}</p><p className="break-all text-xs text-slate-500">{user.email}</p></div></div></td>
       <td data-label="School ID"><span className="font-mono text-xs text-slate-600">{user.school_id}</span></td>
       <td data-label="Role"><select className="admin-select" value={role} onChange={(event) => setRole(event.target.value as UserRole)} disabled={isSelf}>{roles.map((item) => <option key={item} value={item}>{item}</option>)}</select></td>
       <td data-label="Status"><select className="admin-select" value={status} onChange={(event) => setStatus(event.target.value as AccountStatus)} disabled={isSelf}>{statuses.map((item) => <option key={item} value={item}>{item}</option>)}</select></td>

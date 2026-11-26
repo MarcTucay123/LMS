@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components -- provider and paired hook intentionally share this module */
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { LocalSession as Session, LocalUser as User } from '../lib/supabase'
-import { pendingRoleCheckKey } from '../lib/auth'
+import { inactivityLogoutKey, pendingRoleCheckKey } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import type { Profile } from '../types/database'
 
@@ -12,6 +12,7 @@ interface AuthContextValue {
   loading: boolean
   error: string | null
   signOut: () => Promise<void>
+  registerBeforeSignOut: (handler: () => void | Promise<void>) => () => void
   refreshProfile: () => Promise<void>
 }
 
@@ -22,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const beforeSignOutHandlers = useRef(new Set<() => void | Promise<void>>())
 
   const loadProfile = useCallback(async (userId: string) => {
     const { data, error: profileError } = await supabase.from('profiles').select('*').eq('id', userId).single()
@@ -40,6 +42,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(caught instanceof Error ? caught.message : 'Unable to load your profile.')
     }
   }, [loadProfile, session])
+
+  const registerBeforeSignOut = useCallback((handler: () => void | Promise<void>) => {
+    beforeSignOutHandlers.current.add(handler)
+    return () => { beforeSignOutHandlers.current.delete(handler) }
+  }, [])
+
+  const signOut = useCallback(async () => {
+    await Promise.allSettled(Array.from(beforeSignOutHandlers.current, (handler) => handler()))
+    await supabase.auth.signOut()
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -90,6 +102,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [loadProfile])
 
+  useEffect(() => {
+    if (!session) return
+    let active = true
+    let timeoutMinutes = 10
+    let logoutTimer = 0
+    let lastServerUpdate = 0
+
+    const expireSession = () => {
+      if (!active) return
+      window.sessionStorage.setItem(inactivityLogoutKey, 'Your session expired because there was no activity.')
+      void signOut()
+    }
+    const scheduleLogout = () => {
+      window.clearTimeout(logoutTimer)
+      logoutTimer = window.setTimeout(expireSession, timeoutMinutes * 60 * 1000)
+    }
+    const updateServerActivity = async (force = false) => {
+      const now = Date.now()
+      if (!force && now - lastServerUpdate < 30_000) return
+      lastServerUpdate = now
+      const { data, error: activityError } = await supabase.auth.recordActivity()
+      if (!active) return
+      if (activityError || !data) {
+        window.sessionStorage.setItem(inactivityLogoutKey, 'Your session expired. Please sign in again.')
+        await signOut()
+        return
+      }
+      timeoutMinutes = data.inactivity_timeout_minutes
+      scheduleLogout()
+    }
+    const handleActivity = () => {
+      scheduleLogout()
+      void updateServerActivity()
+    }
+    const events: (keyof WindowEventMap)[] = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart']
+    for (const event of events) window.addEventListener(event, handleActivity, { passive: true })
+    scheduleLogout()
+    void updateServerActivity(true)
+
+    return () => {
+      active = false
+      window.clearTimeout(logoutTimer)
+      for (const event of events) window.removeEventListener(event, handleActivity)
+    }
+  }, [session, signOut])
+
   const value = useMemo<AuthContextValue>(
     () => ({
       session,
@@ -98,11 +156,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       error,
       refreshProfile,
-      signOut: async () => {
-        await supabase.auth.signOut()
-      },
+      registerBeforeSignOut,
+      signOut,
     }),
-    [session, profile, loading, error, refreshProfile],
+    [session, profile, loading, error, refreshProfile, registerBeforeSignOut, signOut],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

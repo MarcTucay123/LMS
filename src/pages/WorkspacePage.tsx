@@ -1,16 +1,21 @@
-import { ArrowRight, BookOpen, ExternalLink, Eye } from 'lucide-react'
-import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { ArrowRight, BookOpen, ExternalLink } from 'lucide-react'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AnnouncementsTab } from '../components/classroom/AnnouncementsTab'
 import { AssignmentsTab } from '../components/classroom/AssignmentsTab'
 import { DiscussionsTab } from '../components/classroom/DiscussionsTab'
 import { MaterialsTab } from '../components/classroom/MaterialsTab'
 import { ProgressTab } from '../components/classroom/ProgressTab'
 import { ExamsTab, QuizzesTab } from '../components/classroom/QuizzesTab'
+import { MyLearningTab } from '../components/classroom/MyLearningTab'
 import { EmptyState, ErrorState, LoadingState } from '../components/ScreenState'
 import { useAuth } from '../hooks/useAuth'
 import { useClasses } from '../hooks/useClasses'
 
 const workspaceSections = {
+  'my-learning': {
+    label: 'My Learning',
+    description: 'Module-based course paths, required activities, timelines, and completion progress.',
+  },
   materials: {
     label: 'Learning materials',
     description: 'Lessons, syllabi, downloadable files, and course resource links.',
@@ -50,19 +55,20 @@ function isWorkspaceSection(value: string | undefined): value is WorkspaceSectio
 export function WorkspacePage() {
   const { section } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
   const { profile } = useAuth()
   const { classes, loading, error, reload } = useClasses()
-
-  if (!isWorkspaceSection(section)) return <Navigate to="/workspace/materials" replace />
-  if (!profile) return null
-
+  const validSection = isWorkspaceSection(section) ? section : null
   const requestedClassId = searchParams.get('class')
   const selectedClass = classes.find((item) => item.id === requestedClassId) ?? classes[0] ?? null
-  const canManageContent = Boolean(selectedClass && profile.role === 'instructor' && selectedClass.instructor_id === profile.id)
-  const isStudent = profile.role === 'student'
-  const canViewReports = profile.role === 'admin' || canManageContent
-  const isMonitoring = profile.role === 'admin'
-  const details = workspaceSections[section]
+  const canManageContent = Boolean(selectedClass && profile?.role === 'instructor' && selectedClass.instructor_id === profile.id)
+  const isStudent = profile?.role === 'student'
+  const canViewReports = canManageContent
+
+  if (!validSection) return <Navigate to="/workspace/my-learning" replace />
+  if (!profile) return null
+  if (profile.role === 'admin') return <Navigate to="/classes" replace />
+  const details = workspaceSections[validSection]
 
   const selectClass = (classId: string) => {
     const next = new URLSearchParams(searchParams)
@@ -113,15 +119,15 @@ export function WorkspacePage() {
               Full classroom <ExternalLink size={15} />
             </Link>
           </div>
-          {isMonitoring && <div className="flex items-start gap-3 border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-900 sm:px-6"><Eye className="mt-0.5 shrink-0" size={18} /><div><p className="font-extrabold">Administrator monitoring view</p><p className="mt-0.5 text-amber-800">This workspace is read-only for academic content. You can review class activity and reports, while the assigned instructor retains teaching and grading controls.</p></div></div>}
           <div className="p-4 sm:p-6 lg:p-8">
-            {section === 'materials' && <MaterialsTab classId={selectedClass.id} canManage={canManageContent} />}
-            {section === 'assignments' && <AssignmentsTab classId={selectedClass.id} canManage={canManageContent} canViewReports={canViewReports} isStudent={isStudent} />}
-            {section === 'quizzes' && <QuizzesTab classId={selectedClass.id} canManage={canManageContent} isStudent={isStudent} />}
-            {section === 'exams' && <ExamsTab classId={selectedClass.id} canManage={canManageContent} isStudent={isStudent} />}
-            {section === 'discussions' && <DiscussionsTab classId={selectedClass.id} canManage={canManageContent} canParticipate={!isMonitoring} />}
-            {section === 'announcements' && <AnnouncementsTab classId={selectedClass.id} canManage={canManageContent} />}
-            {section === 'progress' && <ProgressTab classId={selectedClass.id} canViewReports={canViewReports} />}
+            {validSection === 'my-learning' && <MyLearningTab classId={selectedClass.id} canManage={canManageContent} isStudent={isStudent} onNavigate={(tab) => navigate(`/classes/${selectedClass.id}?tab=${tab}`)} />}
+            {validSection === 'materials' && <MaterialsTab classId={selectedClass.id} canManage={canManageContent} />}
+            {validSection === 'assignments' && <AssignmentsTab classId={selectedClass.id} canManage={canManageContent} canViewReports={canViewReports} isStudent={isStudent} />}
+            {validSection === 'quizzes' && <QuizzesTab classId={selectedClass.id} canManage={canManageContent} isStudent={isStudent} />}
+            {validSection === 'exams' && <ExamsTab classId={selectedClass.id} canManage={canManageContent} isStudent={isStudent} />}
+            {validSection === 'discussions' && <DiscussionsTab classId={selectedClass.id} canManage={canManageContent} canParticipate expectedRosterCount={Number(selectedClass.enrolled_student_count)} />}
+            {validSection === 'announcements' && <AnnouncementsTab classId={selectedClass.id} canManage={canManageContent} />}
+            {validSection === 'progress' && <ProgressTab classId={selectedClass.id} canViewReports={canViewReports} classDetails={selectedClass} />}
           </div>
           <div className="border-t border-slate-100 px-5 py-4 text-right sm:px-6">
             <Link to="/classes" className="inline-flex items-center gap-2 text-sm font-bold text-brand-700">Browse all classes <ArrowRight size={16} /></Link>

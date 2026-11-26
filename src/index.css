@@ -11,8 +11,10 @@
 
 @layer base {
   * { box-sizing: border-box; }
-  html { overflow-x: hidden; }
-  body { margin: 0; min-width: 320px; min-height: 100vh; overflow-x: hidden; background: #f8fafc; color: #0f172a; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  html { overflow-x: hidden; background: #f8fafc; }
+  :is(html.dark, html[data-theme="dark"]) { background: #020617; }
+  body { margin: 0; min-width: 320px; min-height: 100vh; overflow-x: hidden; background: #f8fafc; color: #0f172a; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; transition: background-color 180ms ease, color 180ms ease; }
+  :is(html.dark, html[data-theme="dark"]) body { background: #020617; color: #e2e8f0; }
   img, video, canvas, svg { max-width: 100%; }
   button, input, textarea, select { font: inherit; }
   button:not(:disabled), a { cursor: pointer; }
@@ -21,6 +23,10 @@
 
 @layer components {
   .bg-auth-pattern { background-color: #123a72; background-image: radial-gradient(circle at 20% 10%, rgb(56 189 248 / 25%), transparent 30%), radial-gradient(circle at 90% 80%, rgb(59 130 246 / 25%), transparent 35%), linear-gradient(145deg, #12335f, #1d4f91); }
+  .theme-toggle { @apply inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-extrabold text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200; }
+  .theme-toggle-icon { @apply grid size-5 place-items-center; }
+  .theme-toggle-compact .theme-toggle-label { @apply hidden; }
+  .theme-toggle-compact { @apply size-10 px-0; }
   .card { @apply rounded-xl border border-brand-700 bg-white shadow-sm shadow-blue-900/10; }
   .button-primary { @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brand-700 px-4 py-2.5 font-semibold text-white shadow-sm transition hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-60; }
   .button-secondary { @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50; }
@@ -35,11 +41,15 @@
   .nav-link { @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900; }
   .nav-link-active { @apply bg-brand-50 font-semibold text-brand-700 hover:bg-brand-50 hover:text-brand-700; }
   .state-card { @apply flex min-h-36 items-start justify-center gap-3 rounded-xl border border-brand-700 bg-white p-5 text-slate-600 shadow-sm shadow-blue-900/10 sm:p-8; }
-  .portal-sidebar { @apply fixed inset-y-0 left-0 z-50 flex w-[min(278px,calc(100vw-32px))] flex-col border-r border-slate-200 bg-white shadow-2xl shadow-slate-900/10 transition-transform duration-300 lg:sticky lg:top-0 lg:h-screen lg:w-[278px] lg:shadow-none; }
+  .portal-sidebar { @apply fixed inset-y-0 left-0 z-50 flex w-[min(278px,calc(100vw-32px))] flex-col border-r border-slate-200 bg-white shadow-2xl shadow-slate-900/10 transition-[transform,width] duration-300 lg:sticky lg:top-0 lg:h-screen; }
   .portal-nav-link { @apply flex min-h-12 items-center gap-3 rounded-xl px-3.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900; }
   .portal-nav-link-active { @apply bg-blue-50 text-blue-700 shadow-sm shadow-blue-100 hover:bg-blue-50 hover:text-blue-700; }
+  .portal-nav-count { @apply ml-auto inline-flex min-w-6 items-center justify-center rounded-full bg-blue-600 px-1.5 py-0.5 text-[11px] font-extrabold leading-5 text-white shadow-sm shadow-blue-200; }
+  .portal-nav-call { @apply ml-auto inline-grid size-7 shrink-0 place-items-center rounded-full bg-emerald-600 text-white shadow-sm shadow-emerald-200; }
+  .portal-nav-call + .portal-nav-count { @apply ml-0; }
   .portal-nav-disabled { @apply cursor-default text-slate-400 hover:bg-transparent hover:text-slate-400; }
   .portal-nav-disabled span { @apply ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-slate-400; }
+  .portal-account-action { @apply flex min-h-10 w-full items-center gap-2 rounded-xl px-3 text-sm font-bold text-slate-600 transition hover:bg-blue-50 hover:text-brand-700; }
   .portal-logout { @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-3 text-sm font-bold text-slate-600 transition hover:bg-red-50 hover:text-red-600; }
   .dashboard-hero { @apply relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-blue-500 via-blue-600 to-blue-800 p-6 shadow-xl shadow-blue-900/15 sm:p-8 lg:p-10; }
   .dashboard-hero-orb { @apply pointer-events-none absolute rounded-full bg-white/10 blur-sm; }
@@ -53,6 +63,7 @@
   .summary-caption { @apply mt-2 text-sm text-slate-500; }
   .summary-icon { @apply grid size-14 shrink-0 place-items-center rounded-2xl; }
   .class-count-badge { @apply w-fit rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700; }
+  .class-notification-badge { @apply inline-flex min-w-7 items-center justify-center gap-1 rounded-full bg-white px-2 py-1 text-xs font-black text-blue-700 shadow-sm ring-1 ring-blue-100; }
   .class-card { @apply overflow-hidden rounded-2xl border border-brand-700 bg-white shadow-sm shadow-blue-900/10 transition duration-300 hover:-translate-y-1 hover:border-brand-700 hover:shadow-xl hover:shadow-blue-900/15; }
   .class-card-banner { @apply flex h-24 items-center justify-between overflow-hidden px-5; }
   .class-banner-1 { @apply bg-gradient-to-r from-blue-600 to-blue-800; }
@@ -82,8 +93,199 @@
   .file-picker input { @apply sr-only; }
   .discussion-topic { @apply block w-full rounded-xl border border-brand-700 bg-white p-3 text-left shadow-sm shadow-blue-900/10 transition hover:border-brand-700 hover:bg-blue-50/50; }
   .discussion-topic span { @apply mt-1 block truncate text-xs text-slate-400; }
+  .discussion-topic .discussion-unread-badge { @apply mt-0 inline-flex shrink-0 items-center rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white; }
+  .discussion-topic .discussion-muted-icon { @apply mt-0 block shrink-0 text-slate-400; }
   .discussion-topic-active { @apply border-brand-700 bg-blue-50 text-brand-700; }
-  .discussion-live-layout { height: clamp(32rem, 68dvh, 46rem); grid-template-rows: minmax(7rem, 10rem) minmax(0, 1fr); }
+  .discussion-topic-action-trigger { @apply pointer-events-none absolute right-2 top-2 z-10 grid size-9 place-items-center rounded-full text-slate-500 opacity-0 transition hover:bg-white hover:text-slate-800 hover:shadow-sm focus:bg-white focus:text-slate-800 focus:shadow-sm group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100; }
+  .discussion-topic-container-active .discussion-topic-action-trigger { @apply pointer-events-auto opacity-100; }
+  .discussion-topic-actions-menu { @apply absolute right-2 top-11 z-30 w-44 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/15; }
+  .discussion-topic-actions-menu button { @apply flex min-h-10 w-full items-center rounded-lg px-3 text-left text-sm font-bold text-red-600 transition hover:bg-red-50 focus:bg-red-50; }
+  .discussion-topic-actions-menu .discussion-topic-menu-neutral { @apply text-slate-700 hover:bg-slate-100 focus:bg-slate-100; }
+  .content-sized-selector-layout { grid-template-columns: minmax(0, 1fr); }
+  .content-sized-selector-list { display: grid; width: 100%; max-width: 100%; align-content: start; gap: 0.5rem; }
+  .discussion-live-layout { height: auto; grid-template-rows: minmax(0, 1fr); }
+  .discussion-live-layout.discussion-conversation-view { height: clamp(32rem, 68dvh, 46rem); }
+  .discussion-conversation-header { @apply relative shrink-0 border-b border-slate-100; }
+  .discussion-conversation-call-control { @apply absolute right-14 top-3 z-20; }
+  .discussion-conversation-menu-control { @apply absolute right-3 top-3 z-30; }
+  .discussion-conversation-menu-trigger { @apply grid size-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 focus:bg-slate-100 focus:text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200; }
+  .discussion-call-trigger-blocked { @apply text-amber-500 hover:bg-amber-50 hover:text-amber-600; }
+  .discussion-conversation-menu { @apply absolute right-0 top-[calc(100%+0.5rem)] w-60 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/15; }
+  .discussion-conversation-menu button { @apply flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-bold text-slate-700 transition hover:bg-blue-50 hover:text-brand-700 focus:bg-blue-50 focus:text-brand-700; }
+  .discussion-active-call-banner { @apply flex shrink-0 flex-col gap-3 border-b border-blue-200 bg-blue-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5; }
+  .discussion-active-call-host { @apply flex min-w-0 items-center gap-3; }
+  .discussion-active-call-host > div { @apply min-w-0; }
+  .discussion-active-call-host strong { @apply flex items-center gap-2 text-sm font-black text-brand-800; }
+  .discussion-active-call-host span { @apply mt-0.5 block truncate text-xs font-semibold text-slate-600; }
+  .discussion-active-call-banner > button { @apply shrink-0 justify-center; }
+  .discussion-topic-call-indicator { @apply inline-grid size-6 shrink-0 place-items-center rounded-full bg-emerald-600 text-white shadow-sm shadow-emerald-200; }
+  .discussion-call-backdrop { @apply fixed inset-0 z-[200] grid h-[100dvh] w-screen overflow-hidden bg-slate-950; }
+  .discussion-call-modal { @apply flex h-[100dvh] min-h-0 w-screen flex-col overflow-hidden bg-slate-950 text-white; }
+  .discussion-call-header { @apply flex shrink-0 items-center justify-between gap-4 border-b border-white/10 bg-slate-900 px-4 py-3 sm:px-5; }
+  .discussion-call-header p { @apply flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-blue-300; }
+  .discussion-call-header h2 { @apply mt-0.5 truncate text-base font-black text-white sm:text-lg; }
+  .discussion-call-duration { @apply ml-auto flex shrink-0 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-slate-300 sm:px-3; }
+  .discussion-call-duration span { @apply hidden text-[10px] font-extrabold uppercase tracking-wider sm:inline; }
+  .discussion-call-duration strong { @apply font-mono text-sm font-black tabular-nums text-white; }
+  .discussion-call-header-actions { @apply flex shrink-0 items-center gap-1; }
+  .discussion-call-header-actions button { @apply grid size-10 shrink-0 place-items-center rounded-full text-slate-300 transition hover:bg-white/10 hover:text-white; }
+  .discussion-call-minimized { @apply fixed bottom-4 right-4 z-[200] flex w-[calc(100vw-2rem)] max-w-sm items-center overflow-hidden rounded-2xl border border-white/10 bg-slate-900 text-white shadow-2xl shadow-slate-950/40; }
+  .discussion-call-minimized-main { @apply flex min-w-0 flex-1 items-center gap-3 px-3 py-3 text-left transition hover:bg-white/5; }
+  .discussion-call-minimized-main > span:last-child { @apply min-w-0; }
+  .discussion-call-minimized-main small { @apply block text-[10px] font-extrabold uppercase tracking-wider text-blue-300; }
+  .discussion-call-minimized-main strong { @apply block truncate text-sm font-black text-white; }
+  .discussion-call-minimized-icon { @apply grid size-10 shrink-0 place-items-center rounded-xl bg-blue-600 text-white; }
+  .discussion-call-minimized-action { @apply grid size-10 shrink-0 place-items-center rounded-full text-slate-300 transition hover:bg-white/10 hover:text-white; }
+  .discussion-call-minimized-close { @apply mr-2 hover:bg-red-600 hover:text-white; }
+  .discussion-call-body { @apply grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_minmax(16rem,38dvh)] lg:grid-cols-[minmax(0,1fr)_24rem] lg:grid-rows-1; }
+  .discussion-call-stage { @apply flex min-h-0 flex-col bg-slate-950; }
+  .discussion-call-presentation-actions { @apply flex shrink-0 flex-wrap items-center gap-2 border-b border-emerald-400/20 bg-emerald-950/70 px-3 py-2 text-xs text-emerald-100 sm:px-4; }
+  .discussion-call-presentation-actions > span { @apply mr-auto inline-flex items-center gap-2 font-black; }
+  .discussion-call-presentation-actions button { @apply inline-flex min-h-9 items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 font-black text-white transition hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-300; }
+  .discussion-call-grid { @apply grid min-h-0 flex-1 auto-rows-fr grid-cols-1 gap-3 overflow-y-auto p-3 sm:grid-cols-2 sm:p-4 xl:grid-cols-3; }
+  .discussion-call-tile { @apply relative min-h-56 overflow-hidden rounded-2xl border border-white/10 bg-slate-900; }
+  .discussion-call-tile video { @apply h-full min-h-56 w-full object-cover; }
+  .discussion-call-avatar { @apply grid h-full min-h-56 place-items-center bg-gradient-to-br from-slate-800 to-slate-900 text-slate-400; }
+  .discussion-call-avatar > svg { @apply absolute right-4 top-4; }
+  .discussion-call-tile footer { @apply absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-gradient-to-t from-black/80 to-transparent px-3 pb-3 pt-8 text-sm font-bold; }
+  .discussion-call-controls { @apply flex shrink-0 items-center justify-start gap-3 overflow-x-auto border-t border-white/10 bg-slate-900 px-3 py-3 sm:justify-center; }
+  .discussion-call-controls button { @apply flex min-w-20 flex-col items-center gap-1 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/20 disabled:opacity-50; }
+  .discussion-call-controls button svg { @apply size-5; }
+  .discussion-call-controls .discussion-call-control-off { @apply bg-amber-500/20 text-amber-200; }
+  .discussion-call-controls .discussion-call-control-presenting { @apply bg-emerald-600 text-white hover:bg-emerald-700; }
+  .discussion-call-controls .discussion-call-control-end { @apply bg-red-600 text-white hover:bg-red-700; }
+  .discussion-call-tile-presenting { @apply border-emerald-400/70 ring-2 ring-emerald-400/30; }
+  .discussion-call-tile-presenting video { @apply object-contain; }
+  .discussion-call-presenting-badge { @apply absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white shadow-lg; }
+  .discussion-call-presentation-expand { @apply absolute right-3 top-3 z-10 grid size-10 place-items-center rounded-full border border-white/20 bg-black/65 text-white shadow-lg backdrop-blur transition hover:scale-105 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300; }
+  .discussion-call-list-expand { @apply grid size-8 shrink-0 place-items-center rounded-lg bg-emerald-100 text-emerald-700 transition hover:bg-emerald-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-emerald-300; }
+  .discussion-call-presentation-viewer { @apply fixed inset-0 z-[220] flex min-h-0 flex-col bg-slate-950 text-white; }
+  .discussion-call-presentation-viewer > header { @apply flex shrink-0 items-center justify-between gap-4 border-b border-white/10 bg-slate-900 px-4 py-3 sm:px-6; }
+  .discussion-call-presentation-viewer > header > div { @apply min-w-0; }
+  .discussion-call-presentation-viewer > header span { @apply flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-emerald-300; }
+  .discussion-call-presentation-viewer > header strong { @apply mt-0.5 block truncate text-base font-black sm:text-lg; }
+  .discussion-call-presentation-viewer > header button { @apply grid size-11 shrink-0 place-items-center rounded-full text-slate-300 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-300; }
+  .discussion-call-presentation-canvas { @apply grid min-h-0 flex-1 place-items-center overflow-hidden bg-black p-2 sm:p-4; }
+  .discussion-call-presentation-canvas video { @apply h-full max-h-full w-full max-w-full object-contain; }
+  .discussion-call-presentation-canvas > div { @apply grid place-items-center gap-3 text-center text-slate-400; }
+  .discussion-call-sidebar { @apply grid min-h-0 grid-rows-[auto_minmax(0,1fr)] border-t border-white/10 bg-white text-slate-800 lg:border-l lg:border-t-0; }
+  .discussion-call-participants { @apply max-h-56 overflow-y-auto border-b border-slate-200 p-3 lg:max-h-[45dvh]; }
+  .discussion-call-participants > strong, .discussion-call-chat > strong { @apply flex items-center gap-2 text-sm font-black text-slate-900; }
+  .discussion-call-participants > div { @apply mt-2 grid gap-1; }
+  .discussion-call-participants > div > div { @apply flex min-w-0 items-center gap-2 rounded-lg p-1.5 text-xs font-bold hover:bg-slate-50; }
+  .discussion-call-participants span { @apply min-w-0 flex-1 truncate; }
+  .discussion-call-participants > .discussion-call-attendance-legend { @apply flex flex-wrap gap-x-3 gap-y-1 rounded-lg bg-slate-50 px-2 py-2 text-[10px] font-bold text-slate-600; }
+  .discussion-call-attendance-legend span { @apply inline-flex flex-none items-center gap-1.5; }
+  .discussion-call-attendance-legend i, .discussion-call-attendance-dot { @apply block size-2.5 shrink-0 rounded-full ring-2 ring-white; }
+  .discussion-call-status-active { @apply bg-emerald-500; }
+  .discussion-call-status-inactive { @apply bg-orange-500; }
+  .discussion-call-status-not-joined { @apply bg-red-500; }
+  .discussion-call-participants > div > .discussion-call-attendance-row { @apply gap-2.5; }
+  .discussion-call-attendance-row > span:last-child { @apply flex min-w-0 flex-1 flex-col; }
+  .discussion-call-attendance-row b { @apply truncate text-xs text-slate-800; }
+  .discussion-call-attendance-row small { @apply truncate text-[10px] font-semibold text-slate-400; }
+  .discussion-call-chat { @apply flex min-h-0 flex-col p-3; }
+  .discussion-call-events { @apply mt-2 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1; }
+  .discussion-call-comment { @apply flex items-start gap-2; }
+  .discussion-call-comment-bubble { @apply min-w-0 max-w-full rounded-xl bg-slate-100 px-3 py-2 text-xs; }
+  .discussion-call-comment strong { @apply block text-slate-900; }
+  .discussion-call-comment span { @apply mt-0.5 block break-words text-slate-600; }
+  .discussion-call-event-attachment { @apply relative mt-2 overflow-hidden rounded-xl border border-slate-200 bg-white; }
+  .discussion-call-event-image { @apply block w-full bg-transparent p-0 text-left; }
+  .discussion-call-event-attachment img { @apply max-h-48 w-full object-cover; }
+  .discussion-call-event-attachment > span { @apply flex min-w-0 items-center gap-2 px-3 py-2.5; }
+  .discussion-call-event-attachment > span b { @apply min-w-0 flex-1 truncate text-xs text-slate-800; }
+  .discussion-call-event-attachment > span small { @apply shrink-0 text-[10px] font-semibold text-slate-400; }
+  .discussion-call-event-actions { @apply absolute bottom-2 right-2 flex items-center gap-1; }
+  .discussion-call-event-actions button, .discussion-call-event-actions a { @apply grid size-8 place-items-center rounded-full bg-slate-900/80 text-white shadow-lg transition hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-300; }
+  .discussion-call-reaction { @apply flex items-center gap-2 rounded-xl bg-blue-50 px-3 py-2; }
+  .discussion-call-reaction span { @apply text-2xl; }
+  .discussion-call-reaction small { @apply text-xs font-bold text-brand-700; }
+  .discussion-call-reactions { @apply mt-2 flex items-center justify-around rounded-xl bg-slate-100 p-1; }
+  .discussion-call-reactions button { @apply grid size-9 place-items-center rounded-lg text-xl transition hover:scale-110 hover:bg-white; }
+  .discussion-call-selected-attachment { @apply mt-2 flex items-center justify-between gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2; }
+  .discussion-call-selected-attachment > span { @apply flex min-w-0 flex-1 items-center gap-2 text-blue-700; }
+  .discussion-call-selected-attachment b { @apply min-w-0 flex-1 truncate text-xs; }
+  .discussion-call-selected-attachment small { @apply shrink-0 text-[10px] font-bold text-blue-500; }
+  .discussion-call-selected-attachment > button { @apply grid size-7 shrink-0 place-items-center rounded-full text-blue-600 transition hover:bg-blue-100; }
+  .discussion-call-chat form { @apply mt-2 flex items-center gap-1.5; }
+  .discussion-call-chat input { @apply min-w-0 flex-1 rounded-full border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm outline-none focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100; }
+  .discussion-call-chat form .discussion-call-attach { @apply grid size-9 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-blue-50 hover:text-blue-600 disabled:opacity-40; }
+  .discussion-call-chat form .discussion-call-send { @apply grid size-10 shrink-0 place-items-center rounded-full bg-blue-600 text-white transition hover:bg-blue-700 disabled:opacity-40; }
+  .discussion-messages { touch-action: pan-y; -webkit-overflow-scrolling: touch; overscroll-behavior-y: auto; }
+  .discussion-message-controls { @apply flex shrink-0 items-center gap-0.5; }
+  .discussion-message-action-trigger { @apply inline-flex size-9 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:bg-slate-100 focus:text-slate-700; }
+  .discussion-message-deleted { @apply rounded-full border border-slate-300 bg-transparent px-4 py-2.5 italic text-slate-500; }
+  .discussion-reaction-picker { @apply fixed z-[85] flex w-[276px] items-center justify-around rounded-full border border-slate-200 bg-white px-2 py-1.5 shadow-2xl shadow-slate-900/20; }
+  .discussion-reaction-picker button { @apply grid size-10 place-items-center rounded-full text-2xl transition hover:scale-125 hover:bg-slate-100; }
+  .discussion-reaction-badge { @apply relative inline-flex min-h-7 items-center gap-1 rounded-full border border-slate-200 bg-white px-2 text-xs shadow-sm disabled:cursor-default; }
+  .discussion-reaction-badge span { @apply font-bold text-slate-600; }
+  .discussion-reaction-badge-active { @apply border-blue-300 bg-blue-50 ring-1 ring-blue-200; }
+  .discussion-reaction-badge::after { content: attr(data-tooltip); @apply pointer-events-none absolute bottom-[calc(100%+0.5rem)] left-1/2 z-50 hidden min-w-max max-w-56 -translate-x-1/2 whitespace-pre-line rounded-lg bg-slate-900 px-3 py-2 text-center text-xs font-semibold leading-5 text-white shadow-xl; }
+  .discussion-reaction-badge:hover::after, .discussion-reaction-badge:focus-visible::after { @apply block; }
+  .discussion-seen-row { @apply mt-1.5 flex min-h-5 items-center gap-1.5 px-0.5 text-[10px] font-bold text-slate-400; }
+  .discussion-seen-avatars { @apply flex items-center pl-1; }
+  .discussion-seen-avatars > span { @apply -ml-1 block rounded-full ring-2 ring-white; }
+  .discussion-seen-avatars > span:first-child { @apply ml-0; }
+  .discussion-seen-avatars small { @apply ml-1 inline-flex size-5 items-center justify-center rounded-full bg-slate-200 text-[8px] font-black text-slate-600 ring-2 ring-white; }
+  .discussion-message-actions-menu { @apply fixed z-[80] w-48 rounded-2xl bg-slate-800 p-2 text-white shadow-2xl shadow-slate-950/30; }
+  .discussion-message-actions-menu::after { content: ''; position: absolute; width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; }
+  .discussion-message-actions-menu-above::after { bottom: -9px; border-top: 10px solid #1e293b; }
+  .discussion-message-actions-menu-below::after { top: -9px; border-bottom: 10px solid #1e293b; }
+  .discussion-message-actions-menu-own::after { right: 18px; }
+  .discussion-message-actions-menu-other::after { left: 18px; }
+  .discussion-message-actions-menu button { @apply flex min-h-11 w-full items-center gap-2 rounded-xl px-4 text-left text-sm font-bold text-slate-100 transition hover:bg-white/10 focus:bg-white/10; }
+  .discussion-menu-count { @apply ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-amber-100 px-1.5 text-[10px] font-black text-amber-800; }
+  .discussion-message-highlighted { @apply bg-amber-100/80 p-2 ring-2 ring-amber-400 ring-offset-2; }
+  .discussion-pinned-message { @apply flex w-full items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-amber-300 hover:bg-amber-50 focus:outline-none focus:ring-4 focus:ring-amber-100; }
+  .discussion-pinned-message-icon { @apply grid size-9 shrink-0 place-items-center rounded-full bg-amber-100 text-amber-700; }
+  .discussion-pinned-message strong { @apply text-sm font-black text-slate-900; }
+  .discussion-pinned-message time { @apply shrink-0 text-[10px] font-semibold text-slate-400; }
+  .discussion-pinned-message small { @apply mt-2 flex items-center gap-1 truncate text-xs font-bold text-brand-700; }
+  .discussion-composer { @apply flex min-h-16 items-end gap-2 bg-white p-3 sm:px-4; }
+  .discussion-composer-tools { @apply flex shrink-0 items-center gap-0.5; }
+  .discussion-composer-tools button { @apply grid size-10 shrink-0 place-items-center rounded-full text-blue-600 transition hover:bg-blue-100 focus:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-40; }
+  .discussion-composer-tools .discussion-composer-tool-recording { @apply bg-red-100 text-red-600 ring-2 ring-red-200; }
+  .discussion-composer-input-wrap { @apply relative flex min-w-0 flex-1 items-center; }
+  .discussion-composer-input { @apply min-h-11 w-full rounded-full border border-slate-200 bg-slate-100 py-2.5 pl-4 pr-12 text-sm text-slate-800 outline-none transition placeholder:text-slate-500 hover:bg-slate-200/70 focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100; }
+  .discussion-composer-emoji-control { @apply absolute right-1.5 top-1/2 z-20 -translate-y-1/2; }
+  .discussion-composer-smile { @apply grid size-8 place-items-center rounded-full text-blue-600 transition hover:bg-blue-100 focus:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-300; }
+  .discussion-composer-emoji-picker { @apply absolute bottom-[calc(100%+0.75rem)] right-0 grid w-64 grid-cols-7 gap-1 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-900/20; }
+  .discussion-composer-emoji-picker::after { content: ''; @apply absolute -bottom-2 right-3 size-4 rotate-45 border-b border-r border-slate-200 bg-white; }
+  .discussion-composer-emoji-picker button { @apply relative z-10 grid size-8 place-items-center rounded-lg text-xl transition hover:scale-110 hover:bg-blue-50 focus:bg-blue-100 focus:outline-none; }
+  .discussion-composer-send { @apply grid size-11 shrink-0 place-items-center rounded-full bg-blue-600 text-white shadow-sm shadow-blue-900/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200 active:scale-95 disabled:cursor-wait disabled:opacity-70; }
+  .discussion-composer-attachment { @apply mx-3 mt-3 flex min-w-0 items-center gap-3 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5 sm:mx-4; }
+  .discussion-composer-attachment-icon { @apply grid size-9 shrink-0 place-items-center rounded-lg bg-white text-blue-600 shadow-sm; }
+  .discussion-composer-attachment strong { @apply block truncate text-sm font-extrabold text-slate-800; }
+  .discussion-composer-attachment span { @apply block text-xs font-semibold text-slate-500; }
+  .discussion-composer-attachment > button, .discussion-recording-bar button { @apply grid size-8 shrink-0 place-items-center rounded-full text-slate-500 transition hover:bg-white hover:text-slate-800; }
+  .discussion-recording-bar { @apply mx-3 mt-3 flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-3 py-2.5 text-red-700 sm:mx-4; }
+  .discussion-recording-dot { @apply size-2.5 shrink-0 rounded-full bg-red-600; animation: live-tab-dot-pulse 1.2s ease-in-out infinite; }
+  .discussion-message-attachment { @apply mt-2 min-w-48 max-w-full overflow-hidden rounded-xl; }
+  .discussion-message-image { @apply block max-h-80 w-full overflow-hidden rounded-xl bg-slate-900/10; }
+  .discussion-message-image img { @apply max-h-80 w-full object-contain; }
+  .discussion-message-video { @apply max-h-80 w-full rounded-xl bg-black; }
+  .discussion-message-audio { @apply flex min-w-64 max-w-full items-center gap-3 rounded-xl bg-white p-3 text-brand-700; }
+  .discussion-message-audio-own { @apply bg-white/15 text-white; }
+  .discussion-message-audio strong { @apply block truncate text-xs font-extrabold; }
+  .discussion-message-audio span { @apply block text-xs opacity-70; }
+  .discussion-message-audio audio { @apply mt-2 h-9 w-full min-w-48 max-w-72; }
+  .discussion-message-file { @apply flex w-full min-w-56 items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 text-left text-brand-700; }
+  .discussion-message-file-own { @apply border-white/20 bg-white/15 text-white; }
+  .discussion-message-file strong { @apply block truncate text-sm font-extrabold; }
+  .discussion-message-file small { @apply mt-0.5 block text-xs font-semibold opacity-70; }
+  .discussion-message-attachment-footer { @apply mt-1 flex items-center justify-between gap-2 px-1 text-[10px] font-semibold opacity-80; }
+  .discussion-message-attachment-actions { @apply flex shrink-0 items-center gap-0.5; }
+  .discussion-message-attachment-actions a, .discussion-message-attachment-actions button { @apply grid size-7 shrink-0 place-items-center rounded-full transition hover:bg-black/10 focus:outline-none focus:ring-2 focus:ring-current; }
+  .classroom-tab-indicator { @apply pointer-events-none absolute bottom-0 left-0 z-10 h-1 rounded-full bg-blue-600 shadow-sm shadow-blue-500/40; transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), width 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 120ms ease; will-change: transform, width; }
+  .tab-notification-indicators { @apply absolute right-1 top-1.5 flex items-center gap-1; }
+  .tab-notification-count { @apply inline-flex min-w-4 items-center justify-center rounded bg-blue-600 px-1 text-[9px] font-black leading-4 text-white shadow-sm; }
+  .tab-live-notification-dot { @apply block size-2.5 rounded-full bg-red-600 shadow-sm shadow-red-300 ring-2 ring-white; animation: live-tab-dot-pulse 1.6s ease-in-out infinite; }
+  .tab-call-notification-icon { @apply inline-grid size-6 place-items-center rounded-full bg-emerald-600 text-white shadow-sm shadow-emerald-200 ring-2 ring-white; }
+  .notification-content-unread { outline: 2px solid #93c5fd; outline-offset: 1px; border-color: #60a5fa !important; background-color: #eff6ff !important; box-shadow: 0 4px 14px rgb(59 130 246 / 0.14) !important; }
+  .classroom-tab-panel { backface-visibility: hidden; transform: translateZ(0); }
+  .classroom-tab-panel-right { animation: classroom-tab-from-right 320ms cubic-bezier(0.22, 1, 0.36, 1); }
+  .classroom-tab-panel-left { animation: classroom-tab-from-left 320ms cubic-bezier(0.22, 1, 0.36, 1); }
   .modal-backdrop { @apply fixed inset-0 z-[70] grid place-items-start overflow-y-auto bg-slate-950/50 p-3 backdrop-blur-sm sm:place-items-center sm:p-4; }
   .modal-card { @apply my-3 max-h-[calc(100dvh-24px)] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-4 shadow-2xl sm:my-0 sm:max-h-[calc(100dvh-32px)] sm:p-7; }
   .status-pill { @apply rounded-full px-2.5 py-1 text-xs font-extrabold capitalize; }
@@ -91,9 +293,390 @@
   .status-pill-inactive { @apply bg-slate-100 text-slate-500; }
 }
 
-@media (min-width: 1024px) {
-  .discussion-live-layout { grid-template-rows: minmax(0, 1fr); }
+@media (min-width: 640px) {
+  .sm\:theme-toggle-full { width: auto; padding-inline: 0.75rem; }
+  .sm\:theme-toggle-full .theme-toggle-label { display: inline; }
 }
+
+/* Global dark palette. The LMS predates theme variants, so these rules remap the
+   shared utility tokens used throughout public, classroom, and admin screens. */
+:is(html.dark, html[data-theme="dark"]) .bg-auth-pattern {
+  background-color: #020617;
+  background-image: radial-gradient(circle at 20% 10%, rgb(14 165 233 / 18%), transparent 30%), radial-gradient(circle at 90% 80%, rgb(37 99 235 / 18%), transparent 35%), linear-gradient(145deg, #020617, #0f172a 55%, #172554);
+}
+
+:is(html.dark, html[data-theme="dark"]) .portal-layout { background-color: #020617 !important; }
+
+:is(html.dark, html[data-theme="dark"]) [class~="bg-white"],
+:is(html.dark, html[data-theme="dark"]) [class~="bg-white/95"] { background-color: #0f172a !important; }
+:is(html.dark, html[data-theme="dark"]) [class~="bg-slate-50"],
+:is(html.dark, html[data-theme="dark"]) [class*="bg-slate-50/"] { background-color: #111c30 !important; }
+:is(html.dark, html[data-theme="dark"]) [class~="bg-slate-100"],
+:is(html.dark, html[data-theme="dark"]) [class*="bg-slate-100/"] { background-color: #1e293b !important; }
+:is(html.dark, html[data-theme="dark"]) [class~="bg-slate-200"],
+:is(html.dark, html[data-theme="dark"]) [class*="bg-slate-200/"] { background-color: #334155 !important; }
+:is(html.dark, html[data-theme="dark"]) [class~="bg-blue-50"],
+:is(html.dark, html[data-theme="dark"]) [class*="bg-blue-50/"] { background-color: #102342 !important; }
+:is(html.dark, html[data-theme="dark"]) [class~="bg-blue-100"],
+:is(html.dark, html[data-theme="dark"]) [class*="bg-blue-100/"] { background-color: #15315d !important; }
+:is(html.dark, html[data-theme="dark"]) [class~="bg-emerald-50"] { background-color: #062d25 !important; }
+:is(html.dark, html[data-theme="dark"]) [class~="bg-emerald-100"] { background-color: #064e3b !important; }
+:is(html.dark, html[data-theme="dark"]) [class~="bg-red-50"] { background-color: #3a1118 !important; }
+:is(html.dark, html[data-theme="dark"]) [class~="bg-red-100"] { background-color: #4c1720 !important; }
+:is(html.dark, html[data-theme="dark"]) [class~="bg-amber-50"] { background-color: #352509 !important; }
+:is(html.dark, html[data-theme="dark"]) [class~="bg-amber-100"],
+:is(html.dark, html[data-theme="dark"]) [class*="bg-amber-100/"] { background-color: #49340b !important; }
+:is(html.dark, html[data-theme="dark"]) [class~="bg-orange-50"],
+:is(html.dark, html[data-theme="dark"]) [class*="bg-orange-50/"] { background-color: #3b210c !important; }
+:is(html.dark, html[data-theme="dark"]) [class~="bg-violet-50"] { background-color: #25164b !important; }
+
+html.dark [class~="text-slate-950"],
+html.dark [class~="text-slate-900"] { color: #f8fafc !important; }
+html.dark [class~="text-slate-800"] { color: #e2e8f0 !important; }
+html.dark [class~="text-slate-700"] { color: #cbd5e1 !important; }
+html.dark [class~="text-slate-600"] { color: #b8c5d6 !important; }
+html.dark [class~="text-slate-500"] { color: #94a3b8 !important; }
+html.dark [class~="text-slate-400"] { color: #8494aa !important; }
+html.dark [class~="text-brand-700"],
+html.dark [class~="text-brand-800"],
+html.dark [class~="text-brand-900"] { color: #7db7ff !important; }
+html.dark [class~="text-blue-700"],
+html.dark [class~="text-blue-800"],
+html.dark [class~="text-blue-900"] { color: #93c5fd !important; }
+html.dark [class~="text-emerald-700"],
+html.dark [class~="text-emerald-800"],
+html.dark [class~="text-emerald-900"] { color: #6ee7b7 !important; }
+html.dark [class~="text-red-700"],
+html.dark [class~="text-red-800"],
+html.dark [class~="text-red-900"] { color: #fca5a5 !important; }
+html.dark [class~="text-amber-700"],
+html.dark [class~="text-amber-800"],
+html.dark [class~="text-amber-900"] { color: #fcd34d !important; }
+html.dark [class~="text-orange-700"],
+html.dark [class~="text-orange-800"],
+html.dark [class~="text-orange-900"] { color: #fdba74 !important; }
+html.dark [class~="text-violet-600"] { color: #c4b5fd !important; }
+
+html.dark [class~="border-slate-100"] { border-color: #1e293b !important; }
+html.dark [class~="border-slate-200"] { border-color: #334155 !important; }
+html.dark [class~="border-slate-300"] { border-color: #475569 !important; }
+html.dark [class~="border-blue-100"] { border-color: #1e3a5f !important; }
+html.dark [class~="border-blue-200"] { border-color: #28558a !important; }
+html.dark [class~="border-blue-300"] { border-color: #3b82c4 !important; }
+html.dark [class~="border-emerald-200"],
+html.dark [class~="border-emerald-300"] { border-color: #047857 !important; }
+html.dark [class~="border-red-200"],
+html.dark [class~="border-red-300"] { border-color: #9f3345 !important; }
+html.dark [class~="border-amber-200"],
+html.dark [class~="border-amber-300"] { border-color: #a16207 !important; }
+html.dark [class~="border-orange-200"],
+html.dark [class~="border-orange-300"] { border-color: #c2410c !important; }
+html.dark [class~="border-brand-700"],
+html.dark .classroom-outline { border-color: #315d91 !important; }
+
+html.dark input,
+html.dark textarea,
+html.dark select { color-scheme: dark; }
+html.dark option { background: #0f172a; color: #e2e8f0; }
+html.dark input::placeholder,
+html.dark textarea::placeholder { color: #64748b !important; }
+
+html.dark .portal-sidebar,
+html.dark .modal-card { background-color: #0f172a; border-color: #334155; }
+html.dark .portal-sidebar-expanded { box-shadow: 12px 0 28px rgb(0 0 0 / 0.35); }
+html.dark .portal-sidebar-toggle { color: #94a3b8; }
+html.dark .portal-sidebar-toggle:hover { background: #1e293b; color: #93c5fd; }
+html.dark .theme-toggle { border-color: #475569; background-color: #172033; color: #e2e8f0; }
+html.dark .theme-toggle:hover { background-color: #25334a; }
+html.dark .card,
+html.dark .state-card,
+html.dark .summary-card,
+html.dark .class-card,
+html.dark .workspace-item,
+html.dark .discussion-topic { border-color: #315d91; background-color: #0f172a; box-shadow: 0 1px 3px rgb(0 0 0 / 0.35); }
+html.dark .workspace-form { border-color: #254b78; background-color: #0d213d; }
+html.dark .discussion-topic-active { border-color: #4c8fd8; background-color: #102b50 !important; color: #bfdbfe; }
+html.dark .discussion-message-deleted { border-color: #475569; color: #94a3b8; }
+html.dark .discussion-reaction-badge { border-color: #475569; background-color: #172033; }
+html.dark .discussion-reaction-badge-active { border-color: #3b82f6; background-color: #102b50; }
+html.dark .discussion-seen-avatars > span,
+html.dark .discussion-seen-avatars small,
+html.dark .discussion-call-attendance-legend i,
+html.dark .discussion-call-attendance-dot,
+html.dark .tab-live-notification-dot,
+html.dark .tab-call-notification-icon { --tw-ring-color: #0f172a !important; }
+html.dark .notification-content-unread { outline-color: #3b82f6; border-color: #3b82f6 !important; background-color: #102b50 !important; box-shadow: 0 4px 14px rgb(37 99 235 / 0.2) !important; }
+html.dark .notification-content-unread :is(h1, h2, h3, h4, strong) { color: #f8fafc !important; }
+html.dark .notification-content-unread :is(p, span) { color: #cbd5e1; }
+html.dark .notification-content-unread :is(small, time) { color: #94a3b8 !important; }
+html.dark .discussion-message-highlighted { background-color: rgb(120 78 12 / 0.45) !important; --tw-ring-color: #f59e0b; }
+html.dark .discussion-call-sidebar { background-color: #0f172a; color: #e2e8f0; }
+html.dark .discussion-call-comment-bubble { background-color: #1e293b; }
+html.dark .discussion-call-chat input { border-color: #334155; background-color: #1e293b; color: #e2e8f0; }
+html.dark .discussion-call-chat input:focus { background-color: #0f172a; }
+html.dark .modal-backdrop { background-color: rgb(2 6 23 / 0.78); }
+html.dark .admin-table th { border-color: #334155; background-color: #172033; color: #94a3b8; }
+html.dark .admin-table td { border-color: #1e293b; color: #cbd5e1; }
+html.dark .admin-table tbody tr:hover { background-color: rgb(30 41 59 / 0.75); }
+html.dark .status-pill-active { background-color: #064e3b; color: #6ee7b7; }
+html.dark .status-pill-inactive { background-color: #1e293b; color: #94a3b8; }
+html.dark :where(article, section, div).border.border-slate-200.bg-white { border-color: #315d91; box-shadow: 0 1px 3px rgb(0 0 0 / 0.35); }
+
+/* Keep semantic light gradients and interaction states inside the dark palette.
+   Tailwind variants such as hover:bg-* are separate class tokens, so the base
+   bg-* remapping above does not cover them automatically. */
+html.dark .class-roster-header {
+  background-color: #172033 !important;
+  background-image: linear-gradient(to right, #172033, #102b50) !important;
+}
+html[data-theme="dark"] .class-roster-header {
+  background-color: #172033 !important;
+  background-image: linear-gradient(to right, #172033, #102b50) !important;
+}
+:is(html.dark, html[data-theme="dark"]) :is(.workspace-item, .card, .state-card, .summary-card, .class-card, .discussion-topic, .modal-card) {
+  color: #e2e8f0;
+}
+:is(html.dark, html[data-theme="dark"]) .notification-content-unread {
+  outline-color: #3b82f6;
+  border-color: #3b82f6 !important;
+  background-color: #102b50 !important;
+  background-image: none !important;
+  color: #e2e8f0;
+  box-shadow: 0 4px 14px rgb(37 99 235 / 0.2) !important;
+}
+:is(html.dark, html[data-theme="dark"]) .notification-content-unread :is(h1, h2, h3, h4, strong) { color: #f8fafc !important; }
+:is(html.dark, html[data-theme="dark"]) .notification-content-unread :is(p, span) { color: #cbd5e1; }
+:is(html.dark, html[data-theme="dark"]) .notification-content-unread :is(small, time) { color: #94a3b8 !important; }
+html.dark [class~="hover:bg-white"]:hover,
+html.dark [class~="focus:bg-white"]:focus { background-color: #172033 !important; }
+html.dark [class~="hover:bg-slate-50"]:hover,
+html.dark [class~="hover:bg-slate-50/70"]:hover,
+html.dark [class~="disabled:bg-slate-50"]:disabled { background-color: #111c30 !important; }
+html.dark [class~="hover:bg-slate-100"]:hover,
+html.dark [class~="focus:bg-slate-100"]:focus { background-color: #25334a !important; }
+html.dark [class~="hover:bg-slate-200"]:hover,
+html.dark [class~="hover:bg-slate-200/70"]:hover { background-color: #334155 !important; }
+html.dark [class~="hover:bg-blue-50"]:hover,
+html.dark [class~="hover:bg-blue-50/40"]:hover,
+html.dark [class~="hover:bg-blue-50/50"]:hover,
+html.dark [class~="focus:bg-blue-50"]:focus { background-color: #102b50 !important; }
+html.dark [class~="hover:bg-blue-100"]:hover,
+html.dark [class~="focus:bg-blue-100"]:focus { background-color: #15315d !important; }
+html.dark [class~="hover:bg-brand-50"]:hover { background-color: #102342 !important; }
+html.dark [class~="hover:bg-red-50"]:hover,
+html.dark [class~="focus:bg-red-50"]:focus { background-color: #3a1118 !important; }
+html.dark [class~="hover:bg-amber-50"]:hover { background-color: #352509 !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  body { transition: none; }
+}
+
+@media (min-width: 1024px) {
+  .portal-layout {
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr);
+    transition: grid-template-columns 300ms ease;
+  }
+
+  .portal-layout-pinned {
+    grid-template-columns: 278px minmax(0, 1fr);
+  }
+
+  .portal-sidebar {
+    position: fixed;
+    top: 0;
+    bottom: auto;
+    left: 0;
+    width: 84px;
+    height: 100dvh;
+    overflow: hidden;
+    box-shadow: none;
+  }
+
+  .portal-sidebar-expanded {
+    width: 278px;
+    box-shadow: 12px 0 28px rgb(15 23 42 / 0.12);
+  }
+
+  .portal-layout-pinned .portal-sidebar-expanded {
+    box-shadow: none;
+  }
+
+  .portal-sidebar-header {
+    padding-inline: 17px;
+    overflow: hidden;
+  }
+
+  .portal-sidebar-toggle {
+    width: 48px;
+    height: 48px;
+    place-items: center;
+    border-radius: 0.75rem;
+    color: #475569;
+    transition: background-color 150ms ease, color 150ms ease;
+  }
+
+  .portal-sidebar-toggle:hover {
+    background: #f1f5f9;
+    color: #1d4f91;
+  }
+
+  .portal-sidebar-logo,
+  .portal-sidebar-copy,
+  .portal-sidebar-section,
+  .portal-nav-label,
+  .portal-sidebar-profile > div > div:last-child {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 120ms ease, visibility 120ms ease;
+  }
+
+  .portal-sidebar-logo {
+    width: 0;
+    min-width: 0;
+    transform: scale(0.8);
+  }
+
+  .portal-sidebar-expanded .portal-sidebar-logo {
+    width: 48px;
+    min-width: 48px;
+    transform: scale(1);
+  }
+
+  .portal-sidebar-expanded .portal-sidebar-logo,
+  .portal-sidebar-expanded .portal-sidebar-copy,
+  .portal-sidebar-expanded .portal-sidebar-section,
+  .portal-sidebar-expanded .portal-nav-label,
+  .portal-sidebar-expanded .portal-sidebar-profile > div > div:last-child {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition-delay: 100ms;
+  }
+
+  .portal-sidebar-scroll {
+    overflow-x: hidden;
+  }
+
+  .portal-sidebar-collapsed .portal-sidebar-scroll {
+    padding-inline: 17px;
+  }
+
+  .portal-sidebar-collapsed .portal-sidebar-section {
+    height: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  .portal-nav-label {
+    max-width: 0;
+    overflow: hidden;
+    flex: 0 0 auto;
+    white-space: nowrap;
+    transition: max-width 300ms ease, opacity 120ms ease, visibility 120ms ease;
+  }
+
+  .portal-sidebar-expanded .portal-nav-label {
+    max-width: 180px;
+  }
+
+  .portal-sidebar-collapsed .portal-nav-link {
+    width: 48px;
+    padding-inline: 0;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .portal-nav-link > svg,
+  .portal-nav-icon {
+    flex: 0 0 auto;
+  }
+
+  .portal-sidebar-collapsed .portal-nav-count {
+    position: absolute;
+    top: 3px;
+    right: 2px;
+    min-width: 17px;
+    height: 17px;
+    margin: 0;
+    padding-inline: 4px;
+    font-size: 9px;
+    line-height: 17px;
+  }
+
+  .portal-sidebar-collapsed .portal-nav-link {
+    position: relative;
+  }
+
+  .portal-sidebar-profile {
+    overflow: hidden;
+  }
+
+  .portal-sidebar-collapsed .portal-sidebar-profile {
+    padding-inline: 16px;
+  }
+
+  .portal-sidebar-collapsed .portal-sidebar-profile > div {
+    width: 51px;
+    padding: 4px;
+    justify-content: center;
+    background: transparent;
+  }
+
+  .portal-sidebar-collapsed .portal-sidebar-profile > div > div:first-child {
+    width: 43px;
+    height: 43px;
+  }
+}
+
+@keyframes classroom-tab-from-right {
+  from { transform: translate3d(36px, 0, 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes classroom-tab-from-left {
+  from { transform: translate3d(-36px, 0, 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes live-tab-dot-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.18); opacity: 0.72; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .classroom-tab-indicator { transition: none; }
+  .tab-live-notification-dot { animation: none; }
+  .classroom-tab-panel-left,
+  .classroom-tab-panel-right { animation: none; }
+}
+
+@media (min-width: 1024px) {
+  .content-sized-selector-layout { grid-template-columns: minmax(0, max-content) minmax(0, 1fr); }
+  .content-sized-selector-list { width: max-content; max-width: min(28rem, 40vw); }
+  .discussion-live-layout,
+  .discussion-live-layout.discussion-conversation-view { height: clamp(32rem, 68dvh, 46rem); grid-template-rows: minmax(0, 1fr); }
+}
+
+@media (max-width: 1023px) {
+  .discussion-topic-list-mobile-hidden { display: none; }
+  .discussion-topic-list { overflow: visible; padding-right: 0; touch-action: pan-y; overscroll-behavior-y: auto; }
+}
+
+.print-only-report { display: none; }
+.progress-report-header { padding-bottom: 1rem; border-bottom: 2px solid #1d4f91; }
+.progress-report-eyebrow { margin: 0 0 0.35rem; color: #1d4f91; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.progress-report-header h1 { margin: 0; color: #0f172a; font-size: 1.6rem; font-weight: 800; }
+.progress-report-class { margin-top: 1rem; }
+.progress-report-code { margin: 0; color: #1d4f91; font-size: 0.85rem; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; }
+.progress-report-class h2 { margin: 0.2rem 0 0.3rem; color: #0f172a; font-size: 1.25rem; font-weight: 800; }
+.progress-report-class > p:not(.progress-report-code), .progress-report-schedules p { margin: 0.2rem 0; color: #475569; font-size: 0.82rem; font-weight: 600; }
+.progress-report-schedules { margin-top: 0.55rem; }
+.progress-report-schedules p { display: flex; flex-wrap: wrap; gap: 0.25rem 0.65rem; }
+.progress-report-generated { margin: 0.8rem 0 0; color: #64748b; font-size: 0.72rem; }
+.progress-report-description { margin: 0.25rem 0 0.9rem; color: #64748b; font-size: 0.82rem; }
+.progress-report-note { margin: 1rem 0 0; color: #64748b; font-size: 0.72rem; }
 
 /* Keep white content surfaces visually distinct throughout the portal without
    changing controls such as inputs, buttons, links, and icon actions. */
@@ -144,16 +727,19 @@
 
 @media print {
   @page { size: landscape; margin: 12mm; }
+  @page progress-report { size: portrait; margin: 12mm; }
 
   body { background: #fff !important; color: #0f172a !important; }
+  body.printing-progress-report > #root { display: none !important; }
   body * { visibility: hidden !important; }
   .progress-print-report,
   .progress-print-report *,
   .audit-print-report,
   .audit-print-report * { visibility: visible !important; }
   .progress-print-report {
-    position: absolute;
-    inset: 0 auto auto 0;
+    display: block !important;
+    position: static;
+    page: progress-report;
     width: 100%;
     padding: 0;
     background: #fff;
@@ -166,6 +752,7 @@
     background: #fff;
   }
   .print-hidden { display: none !important; }
+  .print-only-report { display: block !important; }
   .print-report-heading {
     display: block !important;
     margin-bottom: 1.25rem;
@@ -205,4 +792,22 @@
   .audit-print-report article,
   .audit-print-report section,
   .audit-print-report div { box-shadow: none !important; }
+  .progress-print-report > h3 { margin: 1.1rem 0 0; font-size: 1.05rem; }
+  .progress-print-report .progress-report-header { break-after: avoid; }
+  .progress-print-report .progress-report-class { margin-top: 0.65rem; }
+  .progress-print-report .progress-report-class h2 { font-size: 1.05rem; }
+  .progress-print-report .progress-report-schedules { margin-top: 0.35rem; }
+  .progress-print-report .progress-report-table { border-color: #94a3b8 !important; border-radius: 0 !important; }
+  .progress-print-report .admin-table { table-layout: fixed; font-size: 7.5pt; }
+  .progress-print-report .admin-table th { padding: 0.35rem !important; font-size: 6.8pt !important; letter-spacing: 0 !important; }
+  .progress-print-report .admin-table td { padding: 0.4rem 0.35rem !important; overflow-wrap: anywhere; }
+  .progress-print-report .admin-table th:first-child,
+  .progress-print-report .admin-table td:first-child { width: 24%; }
+  .progress-print-report .admin-table th:not(:first-child),
+  .progress-print-report .admin-table td:not(:first-child) { width: 19%; }
+  .progress-print-report .admin-table td > div { min-width: 0 !important; max-width: none !important; width: 100% !important; }
+  .progress-print-report .admin-table td > div > div:first-child { display: block !important; margin-bottom: 0 !important; }
+  .progress-print-report .admin-table td > div > div:first-child span:first-child { display: none !important; }
+  .progress-print-report .admin-table td > div > div:first-child span:last-child { display: block; white-space: normal !important; font-size: 7pt !important; }
+  .progress-print-report .admin-table td > div > div:last-child { display: none !important; }
 }

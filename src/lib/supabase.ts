@@ -138,6 +138,12 @@ const auth = {
     try { await request('auth.logout') } finally { notify('SIGNED_OUT', null) }
     return { error: null }
   },
+  async recordActivity() {
+    try {
+      const data = await request<{ inactivity_timeout_minutes: number }>('auth.activity')
+      return { data, error: null }
+    } catch (caught) { return { data: null, error: caught as ApiError } }
+  },
   async refreshSession() {
     const result = await auth.getSession()
     if (result.data.session) notify('SIGNED_IN', result.data.session)
@@ -149,7 +155,7 @@ const auth = {
       return { data, error: null }
     } catch (caught) { return { data: null, error: caught as ApiError } }
   },
-  async updateUser(values: { password?: string }) {
+  async updateUser(values: { password?: string; currentPassword?: string }) {
     try {
       const data = await request<{ user: LocalUser }>('auth.update-user', { ...values, token: new URLSearchParams(window.location.search).get('token') })
       return { data, error: null }
@@ -157,7 +163,7 @@ const auth = {
   },
 }
 
-function storageBucket(bucket: string) {
+function storageBucket(bucket: 'materials' | 'submissions' | 'discussions' | 'profiles') {
   return {
     async upload(path: string, file: File) {
       const form = new FormData()

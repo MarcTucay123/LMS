@@ -106,7 +106,7 @@ Uploads are written beneath `D:\LMS\storage\uploads\materials` and `D:\LMS\stora
 
 These files are outside `htdocs`. Downloads use short-lived session-bound URLs and are re-authorized by class membership, ownership, or class-manager permission.
 
-Supported upload extensions are PDF, DOC, DOCX, ODT, RTF, TXT, and ZIP, with a 10 MB application limit. PHP/XAMPP `upload_max_filesize` and `post_max_size` must be at least as large.
+All classroom uploads accept any file type: learning materials, assignment attachments, assignment submissions, quiz/exam attachments, and quiz/exam submissions. Authorized class members can preview and download every uploaded format. PDF, common images, audio, and video use native browser rendering. DOCX preview preserves document text, basic formatting, tables, and embedded images; PPTX and XLSX previews extract readable slide and worksheet content. Text, code, JSON, CSV, XML, and configuration formats are shown as escaped text, ZIP-compatible archives show their file listing, and every remaining binary format receives a safe metadata plus hexadecimal/ASCII preview. Full fidelity for proprietary formats still requires downloading and opening the file in its native application. All uploads have a 10 MB application limit. PHP/XAMPP `upload_max_filesize` and `post_max_size` must be at least as large.
 
 ## 9. Validation commands
 
@@ -124,7 +124,7 @@ Recommended browser smoke tests:
 1. Sign in as administrator and confirm all active classes are visible.
 2. Run OneCampus sync and confirm the mock result reports 23 users, 4 subjects, 4 classes, and 20 enrollments.
 3. Sign in as `student1@adfc.edu.ph` and confirm only enrolled classes are visible.
-4. Sign in as the instructor, create and remove an announcement, and test assignment/quiz workflows.
+4. Sign in as the instructor, create and remove an announcement, and test assignment, quiz, exam, and live-session workflows.
 5. Confirm a student cannot open administrator pages or retrieve another class's records/files.
 6. Request a password reset and complete it through the local token link.
 

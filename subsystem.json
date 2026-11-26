@@ -20,6 +20,9 @@
     "quiz_answer_keys",
     "quiz_attempts",
     "quiz_questions",
+    "quiz_live_sessions",
+    "quiz_live_participants",
+    "quiz_live_responses",
     "assignment_submissions"
   ]
 }

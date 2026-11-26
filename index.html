@@ -6,6 +6,16 @@
     <meta name="theme-color" content="#123a72" />
     <meta name="description" content="Asian Development Foundation College Learning Management System" />
     <title>ADFC OneCampus LMS</title>
+    <script>
+      (() => {
+        const saved = localStorage.getItem('adfc-lms-theme');
+        const theme = saved === 'light' || saved === 'dark' ? saved : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.classList.toggle('dark', theme === 'dark');
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+        document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#0f172a' : '#123a72';
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -111,7 +111,51 @@ function sql_datetime(?string $value): ?string
 function current_user_id(): ?string
 {
     $id = $_SESSION['user_id'] ?? null;
-    return is_string($id) && $id !== '' ? $id : null;
+    if (!is_string($id) || $id === '') return null;
+    $lastActivity = (int)($_SESSION['last_activity_at'] ?? time());
+    $timeoutSeconds = lms_security_settings()['inactivity_timeout_minutes'] * 60;
+    if (time() - $lastActivity >= $timeoutSeconds) {
+        clear_authenticated_session();
+        $_SESSION['session_expired_due_to_inactivity'] = true;
+        return null;
+    }
+    return $id;
+}
+
+function clear_authenticated_session(): void
+{
+    unset($_SESSION['user_id'], $_SESSION['last_activity_at']);
+}
+
+function lms_security_settings(): array
+{
+    $defaults = [
+        'max_login_attempts' => 5,
+        'lockout_minutes' => 15,
+        'inactivity_timeout_minutes' => 10,
+        'live_attendance_minimized_enabled' => true,
+        'live_attendance_tab_hidden_enabled' => true,
+        'live_attendance_window_blur_enabled' => true,
+        'live_attendance_inactivity_enabled' => true,
+        'live_attendance_inactivity_seconds' => 30,
+    ];
+    try {
+        $row = db()->query('SELECT max_login_attempts,lockout_minutes,inactivity_timeout_minutes,live_attendance_minimized_enabled,live_attendance_tab_hidden_enabled,live_attendance_window_blur_enabled,live_attendance_inactivity_enabled,live_attendance_inactivity_seconds FROM lms_security_settings WHERE settings_id=1')->fetch();
+        if (!$row) return $defaults;
+        return [
+            'max_login_attempts' => (int)$row['max_login_attempts'],
+            'lockout_minutes' => (int)$row['lockout_minutes'],
+            'inactivity_timeout_minutes' => (int)$row['inactivity_timeout_minutes'],
+            'live_attendance_minimized_enabled' => (bool)$row['live_attendance_minimized_enabled'],
+            'live_attendance_tab_hidden_enabled' => (bool)$row['live_attendance_tab_hidden_enabled'],
+            'live_attendance_window_blur_enabled' => (bool)$row['live_attendance_window_blur_enabled'],
+            'live_attendance_inactivity_enabled' => (bool)$row['live_attendance_inactivity_enabled'],
+            'live_attendance_inactivity_seconds' => (int)$row['live_attendance_inactivity_seconds'],
+        ];
+    } catch (PDOException $error) {
+        if (in_array(($error->errorInfo[1] ?? null), [1054,1146], true)) return $defaults;
+        throw $error;
+    }
 }
 
 function user_payload(array $user): array
@@ -165,7 +209,11 @@ function session_payload(): ?array
 function require_user(): array
 {
     $id = current_user_id();
-    if ($id === null) fail('Authentication is required.', 401);
+    if ($id === null) {
+        $expired = !empty($_SESSION['session_expired_due_to_inactivity']);
+        unset($_SESSION['session_expired_due_to_inactivity']);
+        fail($expired ? 'Your session expired due to inactivity. Please sign in again.' : 'Authentication is required.', 401);
+    }
     $roleSql = lms_role_sql();
     $stmt = db()->prepare("SELECT CAST(u.user_id AS CHAR) id,LOWER(u.email) email,
         {$roleSql} requested_role,{$roleSql} role,
@@ -258,6 +306,8 @@ function class_id_for_record(string $table, string $id): ?string
         'quiz_questions' => 'SELECT q.class_id FROM quiz_questions qq JOIN quizzes q ON q.id=qq.quiz_id WHERE qq.id=?',
         'quiz_answer_keys' => 'SELECT q.class_id FROM quiz_answer_keys k JOIN quiz_questions qq ON qq.id=k.question_id JOIN quizzes q ON q.id=qq.quiz_id WHERE k.question_id=?',
         'quiz_attempts' => 'SELECT q.class_id FROM quiz_attempts a JOIN quizzes q ON q.id=a.quiz_id WHERE a.id=?',
+        'learning_modules' => 'SELECT class_id FROM learning_modules WHERE id=?',
+        'learning_module_items' => 'SELECT m.class_id FROM learning_module_items i JOIN learning_modules m ON m.id=i.module_id WHERE i.id=?',
     ];
     if (!isset($queries[$table])) return null;
     $stmt = db()->prepare($queries[$table]);
@@ -274,6 +324,8 @@ function content_table(string $table): string
         'discussion_posts' => 'learning_discussion_posts',
         'assignments' => 'learning_assignments',
         'submissions' => 'assignment_submissions',
+        'learning_modules' => 'learning_modules',
+        'learning_module_items' => 'learning_module_items',
         default => $table,
     };
 }
@@ -290,7 +342,8 @@ function normalize_row(string $table, array $row): array
     foreach ($row as $key => $value) {
         if (is_string($value) && in_array($key, [
             'opens_at', 'closes_at', 'due_at', 'started_at', 'submitted_at', 'graded_at',
-            'created_at', 'updated_at', 'published_at', 'occurred_at',
+            'created_at', 'updated_at', 'published_at', 'occurred_at', 'scheduled_start',
+            'question_opened_at', 'ended_at', 'joined_at', 'last_seen_at', 'last_read_at', 'completed_at', 'pinned_at', 'deleted_at', 'muted_until', 'left_at',
         ], true) && preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $value)) {
             global $config;
             $timezone = new DateTimeZone((string)$config['app_timezone']);
@@ -299,9 +352,9 @@ function normalize_row(string $table, array $row): array
         if (in_array($key, ['options','answers','essay_scores','records'], true) && is_string($value)) {
             $row[$key] = json_decode($value, true) ?? ($key === 'options' ? [] : []);
         }
-        if ($key === 'is_locked' || $key === 'case_sensitive') $row[$key] = (bool)$value;
-        if (in_array($key, ['points','grade','score','max_score'], true) && $value !== null) $row[$key] = (float)$value;
-        if (in_array($key, ['year_level','position','time_limit_minutes'], true) && $value !== null) $row[$key] = (int)$value;
+        if (in_array($key, ['is_locked','is_pinned','is_deleted','is_joined','reply_to_is_deleted','reacted_by_me','case_sensitive','show_correct_answer','show_leaderboard','randomize_choices','is_correct','mic_muted','camera_enabled','screen_sharing','is_attending','is_host','my_joined','can_manage','is_required','is_completed'], true)) $row[$key] = $value === null ? null : (bool)$value;
+        if (in_array($key, ['points','grade','score','max_score','points_awarded','file_submission_points','submission_file_score'], true) && $value !== null) $row[$key] = (float)$value;
+        if (in_array($key, ['year_level','position','time_limit_minutes','question_time_seconds','response_time_ms','participant_count','response_count','enrolled_count','attachment_size','joined_count','estimated_minutes'], true) && $value !== null) $row[$key] = (int)$value;
     }
     if ($table === 'registration_applications' && !isset($row['selected_class_ids'])) $row['selected_class_ids'] = [];
     return $row;

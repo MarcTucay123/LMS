@@ -58,7 +58,43 @@ creates and links their credentials.
    and optimized LMS audit-log retrieval.
 6. Import `006_add_identification_and_essay_grading.sql` to replace short answer
    with Identification and add instructor-scored Essay questions.
-7. Optionally run `verify_lms_migration.sql` from phpMyAdmin to see the detailed
+7. Import `007_add_live_quiz_sessions.sql` to add enrollment-authorized,
+   instructor-paced live quiz and exam sessions linked to existing classes and schedules.
+8. Import `008_add_user_security_controls.sql` to add editable failed-login
+   lockout and inactivity auto-logout controls.
+9. Import `009_add_quiz_exam_file_submissions.sql` to add optional instructor
+   attachments and student file submissions for regular quizzes and exams.
+10. Import `010_add_quiz_file_grading.sql` to add instructor scoring for student
+   quiz and exam file submissions.
+11. Import `011_add_discussion_message_actions.sql` to add persistent instructor
+    pinning for discussion conversations and messages. Message authors can unsend
+    through the LMS API.
+12. Import `012_add_discussion_replies_reactions_and_soft_delete.sql` to add
+    message replies, emoji reactions, and Messenger-style deleted-message placeholders.
+13. Import `013_add_discussion_membership_and_personal_hiding.sql` to require
+    joining discussions and add per-user leave and delete-conversation behavior.
+14. Import `014_add_discussion_notification_muting.sql` to add per-user timed or
+    indefinite notification muting for joined discussions.
+15. Import `015_add_discussion_attachments.sql` to add private file, image, video,
+    and recorded-audio attachments to discussion messages.
+16. Import `016_add_lms_profile_pictures.sql` to enable private user-uploaded profile
+    pictures across LMS navigation, rosters, discussions, and activity views.
+17. Import `017_add_discussion_video_calls.sql` to add the complete regular
+    discussion-call schema: WebRTC signaling, presence, attendance state, in-call
+    comments with private photo/file attachments, reactions, and screen sharing
+    for every joined participant.
+18. Import `018_finalize_regular_discussion_calls.sql` to upgrade an older call schema,
+    add any missing live-comment attachment columns, remove the retired instructor
+    live-session variant, and keep only member-started calls inside regular discussions.
+19. Import `019_add_discussion_read_receipts.sql` to store each joined participant's
+    latest read discussion message for compact Seen-by profile indicators.
+20. Import `020_add_discussion_live_attendance_history.sql` to preserve the complete
+    enrolled-student attendance roster when the call host ends a discussion call.
+21. Import `021_add_live_call_attendance_controls.sql` to let administrators enable
+    individual inactive-attendance triggers and configure the activity timeout.
+22. Import `022_add_my_learning_paths.sql` to add instructor-built course modules,
+    ordered learning activities, prerequisites, timelines, and student completion tracking.
+23. Optionally run `verify_lms_migration.sql` from phpMyAdmin to see the detailed
    checks and retrievable rows.
 6. Alternatively, open PowerShell and run the shared database migrations with:
 
@@ -153,7 +189,22 @@ For phpMyAdmin, import only:
 3. `004_publish_enrollment_access.sql`
 4. `005_add_exams_and_lms_audit_support.sql`
 5. `006_add_identification_and_essay_grading.sql`
-6. Optionally import `verify_lms_migration.sql`
+6. `007_add_live_quiz_sessions.sql`
+7. `008_add_user_security_controls.sql`
+8. `009_add_quiz_exam_file_submissions.sql`
+9. `010_add_quiz_file_grading.sql`
+10. `011_add_discussion_message_actions.sql`
+11. `012_add_discussion_replies_reactions_and_soft_delete.sql`
+12. `013_add_discussion_membership_and_personal_hiding.sql`
+13. `014_add_discussion_notification_muting.sql`
+14. `015_add_discussion_attachments.sql`
+15. `016_add_lms_profile_pictures.sql`
+16. `017_add_discussion_video_calls.sql`
+17. `018_finalize_regular_discussion_calls.sql`
+18. `019_add_discussion_read_receipts.sql`
+19. `020_add_discussion_live_attendance_history.sql`
+20. `021_add_live_call_attendance_controls.sql`
+21. Optionally import `verify_lms_migration.sql`
 
 The migration package contains these files in order:
 
@@ -165,7 +216,26 @@ The migration package contains these files in order:
    audit-log lookup support
 6. `006_add_identification_and_essay_grading.sql` adds Identification and manual
    Essay grading
-7. `verify_lms_migration.sql` is verification only
+7. `007_add_live_quiz_sessions.sql` adds code-free live sessions authorized by
+   existing OneCampus class enrollment
+8. `008_add_user_security_controls.sql` adds LMS-owned brute-force protection
+   settings, login-attempt lockouts, and inactivity timeout configuration
+9. `009_add_quiz_exam_file_submissions.sql` adds quiz and exam file submissions
+10. `010_add_quiz_file_grading.sql` adds file-submission grading
+11. `011_add_discussion_message_actions.sql` adds discussion message actions
+12. `012_add_discussion_replies_reactions_and_soft_delete.sql` adds replies,
+    reactions, and deleted-message placeholders
+13. `013_add_discussion_membership_and_personal_hiding.sql` adds discussion membership
+14. `014_add_discussion_notification_muting.sql` adds discussion notification muting
+15. `015_add_discussion_attachments.sql` adds discussion attachments and recordings
+16. `016_add_lms_profile_pictures.sql` adds LMS profile pictures
+17. `017_add_discussion_video_calls.sql` adds the complete discussion-call schema
+18. `018_finalize_regular_discussion_calls.sql` removes the retired separate
+    discussion live-session variant and finalizes regular discussion calls
+19. `019_add_discussion_read_receipts.sql` adds persistent conversation read receipts
+20. `020_add_discussion_live_attendance_history.sql` adds finalized call attendance history
+21. `021_add_live_call_attendance_controls.sql` adds configurable inactive-attendance rules
+22. `verify_lms_migration.sql` is verification only
 
 All required migrations are idempotent and may be rerun. The administrator
 migration intentionally resets `adfc_lms` to the documented initial password

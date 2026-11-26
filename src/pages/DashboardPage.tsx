@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowRight,
   BadgeCheck,
+  Bell,
   BookOpen,
   CalendarDays,
   CalendarClock,
@@ -11,8 +12,10 @@ import {
   GraduationCap,
   Layers3,
   MapPin,
+  Search,
   Sparkles,
   UsersRound,
+  X,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { EmptyState, ErrorState, LoadingState } from '../components/ScreenState'
@@ -21,6 +24,8 @@ import { useClasses } from '../hooks/useClasses'
 import { useStudentTodo } from '../hooks/useStudentTodo'
 import { formatScheduleMeeting, scheduleRoomLabel } from '../lib/classSchedule'
 import { StudentTodoRow } from '../components/StudentTodoRow'
+import type { ClassSummary } from '../types/database'
+import { useClassNotifications } from '../hooks/useClassNotifications'
 
 const roleLabels = { student: 'Student', instructor: 'Instructor', admin: 'Administrator' } as const
 
@@ -34,10 +39,33 @@ function firstName(fullName: string) {
   return fullName.trim().split(/\s+/)[0] ?? fullName
 }
 
+function classSearchText(classItem: ClassSummary) {
+  const schedule = classItem.schedule.flatMap((meeting) => [
+    meeting.day_of_week,
+    meeting.start_time,
+    meeting.end_time,
+    meeting.room_code,
+    meeting.building,
+    meeting.class_type,
+  ])
+
+  return [
+    classItem.subject?.code,
+    classItem.subject?.title,
+    classItem.section,
+    classItem.instructor?.full_name,
+    classItem.semester,
+    classItem.school_year,
+    ...schedule,
+  ].filter(Boolean).join(' ').toLocaleLowerCase()
+}
+
 export function DashboardPage() {
   const { profile } = useAuth()
   const { classes, loading, error, reload } = useClasses()
+  const { byClass } = useClassNotifications()
   const [now, setNow] = useState(() => new Date())
+  const [classSearch, setClassSearch] = useState('')
   const { grouped: todo, loading: todoLoading, error: todoError } = useStudentTodo(classes, profile?.role === 'student' && !loading && !error)
 
   useEffect(() => {
@@ -47,6 +75,10 @@ export function DashboardPage() {
 
   const academicYears = useMemo(() => [...new Set(classes.map((item) => item.school_year))], [classes])
   const semesters = useMemo(() => [...new Set(classes.map((item) => item.semester))], [classes])
+  const normalizedClassSearch = classSearch.trim().toLocaleLowerCase()
+  const filteredClasses = useMemo(() => normalizedClassSearch
+    ? classes.filter((classItem) => classSearchText(classItem).includes(normalizedClassSearch))
+    : classes, [classes, normalizedClassSearch])
   if (!profile) return null
 
   const classLabel = profile.role === 'admin' ? 'Active class offerings' : profile.role === 'instructor' ? 'Classes handled' : 'Classes enrolled'
@@ -127,18 +159,36 @@ export function DashboardPage() {
             <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-900">{profile.role === 'admin' ? 'Active classes' : 'My classes'}</h2>
             <p className="mt-1 text-sm text-slate-500">Open a class to access its learning area.</p>
           </div>
-          {!loading && !error && <span className="class-count-badge">{classes.length} {classes.length === 1 ? 'class' : 'classes'}</span>}
+          {!loading && !error && <span className="class-count-badge">{normalizedClassSearch ? `${filteredClasses.length} of ${classes.length}` : classes.length} {classes.length === 1 ? 'class' : 'classes'}</span>}
         </div>
 
         {loading && <LoadingState label="Loading your classes…" />}
         {error && <ErrorState message={error} onRetry={() => void reload()} />}
         {!loading && !error && classes.length === 0 && <EmptyState title="No classes available" description="No active class is assigned to your account. Contact the registrar or an administrator if this seems incorrect." />}
         {!loading && !error && classes.length > 0 && (
-          <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
-            {classes.map((classItem, index) => (
+          <>
+            <div className="relative mb-5 max-w-2xl">
+              <label className="sr-only" htmlFor="dashboard-class-search">Search classes</label>
+              <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={19} aria-hidden="true" />
+              <input
+                id="dashboard-class-search"
+                type="search"
+                className="admin-search-input pr-12"
+                value={classSearch}
+                onChange={(event) => setClassSearch(event.target.value)}
+                placeholder="Search by subject, section, instructor, semester, or room…"
+                autoComplete="off"
+              />
+              {classSearch && <button type="button" className="absolute right-2 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" onClick={() => setClassSearch('')} aria-label="Clear class search"><X size={17} /></button>}
+            </div>
+            {filteredClasses.length === 0 ? <EmptyState title="No matching classes" description={`No classes match “${classSearch.trim()}”. Try a subject code, class title, section, instructor, semester, or room.`} /> : <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
+            {filteredClasses.map((classItem) => {
+              const index = classes.findIndex((item) => item.id === classItem.id)
+              const notificationCount = byClass[classItem.id]?.total ?? 0
+              return (
               <article key={classItem.id} className="class-card group">
                 <div className={`class-card-banner class-banner-${(index % 3) + 1}`}>
-                  <div className="grid size-12 place-items-center rounded-2xl bg-white/15 text-white ring-1 ring-white/20"><BookOpen size={24} /></div>
+                  <div className="flex items-start gap-2"><div className="grid size-12 place-items-center rounded-2xl bg-white/15 text-white ring-1 ring-white/20"><BookOpen size={24} /></div>{notificationCount > 0 && <span className="class-notification-badge" aria-label={`${notificationCount} ${notificationCount === 1 ? 'notification' : 'notifications'}`}><Bell size={14} />{notificationCount}</span>}</div>
                   <div className="flex flex-col items-end gap-2"><span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-white ring-1 ring-white/20">Active</span><span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-extrabold text-brand-700 shadow-sm"><UsersRound size={14} /> {Number(classItem.enrolled_student_count)} {Number(classItem.enrolled_student_count) === 1 ? 'student' : 'students'}</span></div>
                 </div>
                 <div className="p-5 sm:p-6">
@@ -157,8 +207,10 @@ export function DashboardPage() {
                   </div>
                 </div>
               </article>
-            ))}
-          </div>
+              )
+            })}
+          </div>}
+          </>
         )}
       </section>
     </div>

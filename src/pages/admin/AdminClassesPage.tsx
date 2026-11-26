@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { AdminPageHeader } from '../../components/AdminPageHeader'
 import { EmptyState, ErrorState, LoadingState } from '../../components/ScreenState'
 import { supabase } from '../../lib/supabase'
+import { ProfileAvatar } from '../../components/ProfileAvatar'
 
 interface ManagedClass {
   id: string
@@ -15,7 +16,7 @@ interface ManagedClass {
   semester: string
   status: string
   subject: { code: string; title: string } | { code: string; title: string }[] | null
-  instructor: { full_name: string } | { full_name: string }[] | null
+  instructor: { full_name: string; avatar_path: string | null } | { full_name: string; avatar_path: string | null }[] | null
 }
 
 export function AdminClassesPage() {
@@ -28,7 +29,7 @@ export function AdminClassesPage() {
     setError(null)
     const { data, error: queryError } = await supabase
       .from('classes')
-      .select('id, onecampus_class_id, source_system, synced_at, section, school_year, semester, status, subject:subjects(code, title), instructor:profiles!classes_instructor_id_fkey(full_name)')
+      .select('id, onecampus_class_id, source_system, synced_at, section, school_year, semester, status, subject:subjects(code, title), instructor:profiles!classes_instructor_id_fkey(full_name, avatar_path)')
       .order('created_at', { ascending: false })
     if (queryError) setError(queryError.message)
     else setClasses((data ?? []) as unknown as ManagedClass[])
@@ -39,7 +40,7 @@ export function AdminClassesPage() {
     let active = true
     void supabase
       .from('classes')
-      .select('id, onecampus_class_id, source_system, synced_at, section, school_year, semester, status, subject:subjects(code, title), instructor:profiles!classes_instructor_id_fkey(full_name)')
+      .select('id, onecampus_class_id, source_system, synced_at, section, school_year, semester, status, subject:subjects(code, title), instructor:profiles!classes_instructor_id_fkey(full_name, avatar_path)')
       .order('created_at', { ascending: false })
       .then(({ data, error: queryError }) => {
         if (!active) return
@@ -89,7 +90,7 @@ export function AdminClassesPage() {
                   <DataItem label="Section" value={item.section} />
                   <DataItem label="School year" value={item.school_year} />
                   <DataItem label="Semester" value={item.semester} />
-                  <DataItem label="Instructor" value={instructor?.full_name ?? 'Unassigned'} />
+                  <div className="flex min-w-0 items-center gap-2"><ProfileAvatar name={instructor?.full_name ?? 'Instructor'} avatarPath={instructor?.avatar_path} className="size-9 text-[10px]" /><DataItem label="Instructor" value={instructor?.full_name ?? 'Unassigned'} /></div>
                 </dl>
                 <div className="mt-5 rounded-xl bg-blue-50 p-3 text-xs text-blue-800">
                   <p className="font-extrabold uppercase tracking-wide">Source: {formatSource(item.source_system)}</p>

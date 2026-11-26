@@ -1,34 +1,61 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
-import { CalendarDays, CircleHelp, Clock3, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { CircleHelp, Clock3, Eye, FileUp, Pencil, Plus, RadioTower, Trash2, X } from 'lucide-react'
 import { EmptyState, ErrorState, LoadingState } from '../ScreenState'
 import { ScoreBar } from '../ScoreBar'
+import { DateTimeField } from '../DateTimeField'
 import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../lib/supabase'
-import type { AssessmentKind, Database, Json, PublishStatus } from '../../types/database'
+import type { AssessmentKind, Database, Json, LiveQuizLobbyStatus, PublishStatus } from '../../types/database'
 import { TabHeading } from './MaterialsTab'
-import { formatDate } from './workspace'
+import { LiveQuizSessions } from './LiveQuizSessions'
+import { useClassNotifications } from '../../hooks/useClassNotifications'
+import { DocumentPreviewModal, type PreviewDocument } from './DocumentPreviewModal'
+import { formatDate, messageFrom, safeFileName } from './workspace'
+import { destructiveActionConfirmation } from '../../lib/confirmDestructiveAction'
+import { useConfirmation } from '../../hooks/useConfirmation'
+import { ProfileAvatar } from '../ProfileAvatar'
 
 type Quiz = Database['public']['Tables']['quizzes']['Row']
 type Question = Database['public']['Tables']['quiz_questions']['Row']
 type ManagedQuestion = Question & { correct_answer?: string | null }
 type QuestionType = Question['question_type']
 type Attempt = Database['public']['Tables']['quiz_attempts']['Row']
-interface Student { id: string; full_name: string; school_id: string }
+interface Student { id: string; full_name: string; school_id: string; avatar_path: string | null }
 const examTypes = ['Prelim Exam', 'Midterm Exam', 'Semi-Final Exam', 'Final-Exam'] as const
-
-export function QuizzesTab({ classId, canManage, isStudent }: { classId: string; canManage: boolean; isStudent: boolean }) {
-  return <AssessmentsTab classId={classId} canManage={canManage} isStudent={isStudent} assessmentKind="quiz" />
+export function QuizzesTab({ classId, canManage, isStudent, onLobbyStatusChange }: { classId: string; canManage: boolean; isStudent: boolean; onLobbyStatusChange?: (status: LiveQuizLobbyStatus | null) => void }) {
+  return <AssessmentSessionsTab classId={classId} canManage={canManage} isStudent={isStudent} assessmentKind="quiz" onLobbyStatusChange={onLobbyStatusChange} />
 }
 
-export function ExamsTab({ classId, canManage, isStudent }: { classId: string; canManage: boolean; isStudent: boolean }) {
-  return <AssessmentsTab classId={classId} canManage={canManage} isStudent={isStudent} assessmentKind="exam" />
+export function ExamsTab({ classId, canManage, isStudent, onLobbyStatusChange }: { classId: string; canManage: boolean; isStudent: boolean; onLobbyStatusChange?: (status: LiveQuizLobbyStatus | null) => void }) {
+  return <AssessmentSessionsTab classId={classId} canManage={canManage} isStudent={isStudent} assessmentKind="exam" onLobbyStatusChange={onLobbyStatusChange} />
+}
+
+function AssessmentSessionsTab({ classId, canManage, isStudent, assessmentKind, onLobbyStatusChange }: { classId: string; canManage: boolean; isStudent: boolean; assessmentKind: AssessmentKind; onLobbyStatusChange?: (status: LiveQuizLobbyStatus | null) => void }) {
+  const noun = assessmentKind === 'exam' ? 'exam' : 'quiz'
+  const plural = assessmentKind === 'exam' ? 'exams' : 'quizzes'
+  const [view, setView] = useState<'regular' | 'live'>('regular')
+  const [liveCount, setLiveCount] = useState(0)
+  const checkLive = useCallback(async () => {
+    const { data } = await supabase.rpc('list_live_quiz_sessions', { target_class_id: classId, assessment_kind: assessmentKind })
+    setLiveCount((data ?? []).filter((session) => ['lobby', 'active', 'paused'].includes(session.status)).length)
+  }, [assessmentKind, classId])
+  useEffect(() => {
+    const initial = window.setTimeout(() => void checkLive(), 0)
+    const timer = window.setInterval(() => void checkLive(), 4000)
+    return () => { window.clearTimeout(initial); window.clearInterval(timer) }
+  }, [checkLive])
+  const showRegular = () => { setView('regular'); onLobbyStatusChange?.(null) }
+  return <div>{liveCount > 0 && view !== 'live' && <button type="button" onClick={() => setView('live')} className="mb-5 flex w-full items-center justify-between rounded-xl border border-red-200 bg-red-50 p-4 text-left text-red-800"><span><strong className="block"><RadioTower className="mr-2 inline animate-pulse" size={18} />Live {noun} available</strong><span className="mt-1 block text-sm">{liveCount} session{liveCount === 1 ? '' : 's'} currently open for this class.</span></span><span className="rounded-lg bg-white px-3 py-1.5 text-xs font-black uppercase tracking-wide">Open</span></button>}<div className="mb-6 inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1"><button type="button" className={`rounded-lg px-4 py-2 text-sm font-extrabold ${view === 'regular' ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-500'}`} onClick={showRegular}><CircleHelp className="mr-1 inline" size={16} /> Regular {plural}</button><button type="button" className={`rounded-lg px-4 py-2 text-sm font-extrabold ${view === 'live' ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-500'}`} onClick={() => setView('live')}><RadioTower className="mr-1 inline" size={16} /> Live sessions{liveCount > 0 && <span className="ml-2 rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] text-white">{liveCount}</span>}</button></div>{view === 'regular' ? <AssessmentsTab classId={classId} canManage={canManage} isStudent={isStudent} assessmentKind={assessmentKind} /> : <LiveQuizSessions classId={classId} canManage={canManage} isStudent={isStudent} assessmentKind={assessmentKind} onLobbyStatusChange={onLobbyStatusChange} />}</div>
 }
 
 function AssessmentsTab({ classId, canManage, isStudent, assessmentKind }: { classId: string; canManage: boolean; isStudent: boolean; assessmentKind: AssessmentKind }) {
+  const { confirm } = useConfirmation()
   const { profile } = useAuth()
+  const { isUnread, markItemViewed } = useClassNotifications()
   const isExam = assessmentKind === 'exam'
   const noun = isExam ? 'exam' : 'quiz'
   const plural = isExam ? 'Exams' : 'Quizzes'
+  const notificationSection = isExam ? 'exams' : 'quizzes'
   const [quizzes, setQuizzes] = useState<Quiz[]>([])
   const [questions, setQuestions] = useState<Record<string, ManagedQuestion[]>>({})
   const [attempts, setAttempts] = useState<Attempt[]>([])
@@ -39,6 +66,9 @@ function AssessmentsTab({ classId, canManage, isStudent, assessmentKind }: { cla
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [questionFormOpen, setQuestionFormOpen] = useState(false)
+  const [submissionFiles, setSubmissionFiles] = useState<Record<string, File | null>>({})
+  const [previewDocument, setPreviewDocument] = useState<PreviewDocument | null>(null)
   const [now, setNow] = useState(0)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -46,6 +76,7 @@ function AssessmentsTab({ classId, canManage, isStudent, assessmentKind }: { cla
   const [opensAt, setOpensAt] = useState('')
   const [closesAt, setClosesAt] = useState('')
   const [timeLimit, setTimeLimit] = useState('')
+  const [fileSubmissionPoints, setFileSubmissionPoints] = useState('100')
   const [examType, setExamType] = useState<string>('Prelim Exam')
   const [customExamType, setCustomExamType] = useState('')
   const [prompt, setPrompt] = useState('')
@@ -66,16 +97,18 @@ function AssessmentsTab({ classId, canManage, isStudent, assessmentKind }: { cla
   const [editOpensAt, setEditOpensAt] = useState('')
   const [editClosesAt, setEditClosesAt] = useState('')
   const [editTimeLimit, setEditTimeLimit] = useState('')
+  const [editFileSubmissionPoints, setEditFileSubmissionPoints] = useState('100')
   const [editExamType, setEditExamType] = useState<string>('Prelim Exam')
   const [editCustomExamType, setEditCustomExamType] = useState('')
   const autoSubmitting = useRef<string | null>(null)
+  const attachmentInput = useRef<HTMLInputElement | null>(null)
 
   const load = useCallback(async (showLoading = true) => {
     if (showLoading) setLoading(true)
     setError(null)
     const [quizResult, enrollmentResult] = await Promise.all([
       supabase.from('quizzes').select('*').eq('class_id', classId).eq('assessment_kind', assessmentKind).order('created_at', { ascending: false }),
-      canManage ? supabase.from('enrollments').select('student:profiles!enrollments_student_id_fkey(id, full_name, school_id)').eq('class_id', classId).eq('status', 'enrolled') : Promise.resolve({ data: [], error: null }),
+      canManage ? supabase.from('enrollments').select('student:profiles!enrollments_student_id_fkey(id, full_name, school_id, avatar_path)').eq('class_id', classId).eq('status', 'enrolled') : Promise.resolve({ data: [], error: null }),
     ])
     if (quizResult.error || enrollmentResult.error) { setError((quizResult.error ?? enrollmentResult.error)?.message ?? `Unable to load ${noun}s.`); setLoading(false); return }
     const rows = quizResult.data ?? []
@@ -103,16 +136,19 @@ function AssessmentsTab({ classId, canManage, isStudent, assessmentKind }: { cla
   const createQuiz = async (event: FormEvent) => {
     event.preventDefault(); setError(null)
     const limit = timeLimit.trim() ? Number(timeLimit) : null
+    const filePoints = Number(fileSubmissionPoints)
     const selectedExamType = examType === 'Others' ? customExamType.trim() : examType
     if (!title.trim()) return setError(`Enter an ${noun} title.`)
     if (isExam && !selectedExamType) return setError('Enter the custom exam type.')
+    if (opensAt && new Date(opensAt).getTime() < Date.now()) return setError('Opening date and time must be the current time or a future time. Past dates are not allowed.')
     if (opensAt && closesAt && new Date(closesAt).getTime() <= new Date(opensAt).getTime()) return setError('Closing date must be after the opening date.')
     if (limit !== null && (!Number.isInteger(limit) || limit < 1)) return setError('Time limit must be a whole number of minutes.')
+    if (!Number.isFinite(filePoints) || filePoints <= 0) return setError('File submission points must be greater than zero.')
     setSaving(true)
-    const { error: insertError } = await supabase.from('quizzes').insert({ class_id: classId, title: title.trim(), description: description.trim() || null, assessment_kind: assessmentKind, exam_type: isExam ? selectedExamType : null, opens_at: opensAt ? new Date(opensAt).toISOString() : null, closes_at: closesAt ? new Date(closesAt).toISOString() : null, time_limit_minutes: limit, status })
+    const { error: insertError } = await supabase.from('quizzes').insert({ class_id: classId, title: title.trim(), description: description.trim() || null, file_submission_points: filePoints, assessment_kind: assessmentKind, exam_type: isExam ? selectedExamType : null, opens_at: opensAt ? new Date(opensAt).toISOString() : null, closes_at: closesAt ? new Date(closesAt).toISOString() : null, time_limit_minutes: limit, status })
     setSaving(false)
     if (insertError) return setError(insertError.message)
-    setTitle(''); setDescription(''); setStatus('draft'); setOpensAt(''); setClosesAt(''); setTimeLimit(''); setExamType('Prelim Exam'); setCustomExamType(''); setOpen(false)
+    setTitle(''); setDescription(''); setStatus('draft'); setOpensAt(''); setClosesAt(''); setTimeLimit(''); setFileSubmissionPoints('100'); setExamType('Prelim Exam'); setCustomExamType(''); setOpen(false)
     await load()
   }
 
@@ -127,7 +163,7 @@ function AssessmentsTab({ classId, canManage, isStudent, assessmentKind }: { cla
     const { data, error: questionError } = await supabase.from('quiz_questions').insert({ quiz_id: selected, prompt: prompt.trim(), question_type: questionType, options: questionOptions, points: Number(questionPoints) || 1, position: (questions[selected]?.length ?? 0) + 1 }).select().single()
     if (!questionError && data) {
       const { error: keyError } = await supabase.from('quiz_answer_keys').insert({ question_id: data.id, correct_answer: correct.trim(), case_sensitive: false })
-      if (keyError) setError(keyError.message); else { setPrompt(''); setOptions(''); setCorrect(''); setQuestionPoints('1'); await load(false) }
+      if (keyError) setError(keyError.message); else { setPrompt(''); setOptions(''); setCorrect(''); setQuestionPoints('1'); setQuestionFormOpen(false); await load(false) }
     } else setError(questionError?.message ?? 'Unable to add question.')
     setSaving(false)
   }
@@ -186,6 +222,7 @@ function AssessmentsTab({ classId, canManage, isStudent, assessmentKind }: { cla
     setEditOpensAt(toLocalDateTimeInput(quiz.opens_at))
     setEditClosesAt(toLocalDateTimeInput(quiz.closes_at))
     setEditTimeLimit(quiz.time_limit_minutes?.toString() ?? '')
+    setEditFileSubmissionPoints(String(quiz.file_submission_points))
     const standardExamType = examTypes.find((item) => item === quiz.exam_type)
     setEditExamType(standardExamType ?? 'Others')
     setEditCustomExamType(standardExamType ? '' : quiz.exam_type ?? '')
@@ -196,15 +233,20 @@ function AssessmentsTab({ classId, canManage, isStudent, assessmentKind }: { cla
   const saveQuiz = async (event: FormEvent, quiz: Quiz) => {
     event.preventDefault(); setError(null)
     const limit = editTimeLimit.trim() ? Number(editTimeLimit) : null
+    const filePoints = Number(editFileSubmissionPoints)
     const selectedExamType = editExamType === 'Others' ? editCustomExamType.trim() : editExamType
     if (!editTitle.trim()) return setError(`Enter an ${noun} title.`)
     if (isExam && !selectedExamType) return setError('Enter the custom exam type.')
+    const openingChanged = editOpensAt !== toLocalDateTimeInput(quiz.opens_at)
+    if (openingChanged && editOpensAt && new Date(editOpensAt).getTime() < Date.now()) return setError('Opening date and time must be the current time or a future time. Past dates are not allowed.')
     if (editOpensAt && editClosesAt && new Date(editClosesAt).getTime() <= new Date(editOpensAt).getTime()) return setError('Closing date must be after the opening date.')
     if (limit !== null && (!Number.isInteger(limit) || limit < 1)) return setError('Time limit must be a whole number of minutes.')
+    if (!Number.isFinite(filePoints) || filePoints <= 0) return setError('File submission points must be greater than zero.')
     setSaving(true)
     const { error: updateError } = await supabase.from('quizzes').update({
       title: editTitle.trim(),
       description: editDescription.trim() || null,
+      file_submission_points: filePoints,
       assessment_kind: assessmentKind,
       exam_type: isExam ? selectedExamType : null,
       opens_at: editOpensAt ? new Date(editOpensAt).toISOString() : null,
@@ -219,8 +261,37 @@ function AssessmentsTab({ classId, canManage, isStudent, assessmentKind }: { cla
   }
 
   const remove = async (id: string) => {
+    const quiz = quizzes.find((item) => item.id === id)
+    if (!await confirm(destructiveActionConfirmation({ action: 'delete', item: quiz ? `the ${noun} “${quiz.title}”` : `this ${noun}`, detail: `The ${noun}, its questions, and all student attempts will be permanently deleted. This action cannot be undone.` }))) return
     const { error: deleteError } = await supabase.from('quizzes').delete().eq('id', id)
     if (deleteError) setError(deleteError.message); else { if (selected === id) setSelected(null); await load(false) }
+  }
+
+  const attachAssessmentFile = async (quiz: Quiz, file: File | null) => {
+    if (!file) return
+    setSaving(true); setError(null)
+    const path = `${classId}/quiz-attachments/${quiz.id}/${crypto.randomUUID()}-${safeFileName(file.name)}`
+    try {
+      const { error: uploadError } = await supabase.storage.from('materials').upload(path, file)
+      if (uploadError) throw uploadError
+      const { error: saveError } = await supabase.rpc('set_quiz_attachment', { target_quiz_id: quiz.id, attachment_path: path, attachment_name: file.name })
+      if (saveError) throw saveError
+      await load(false)
+    } catch (caught) {
+      await supabase.storage.from('materials').remove([path])
+      setError(messageFrom(caught))
+    } finally {
+      setSaving(false)
+      if (attachmentInput.current) attachmentInput.current.value = ''
+    }
+  }
+
+  const removeAssessmentAttachment = async (quiz: Quiz) => {
+    if (!await confirm(destructiveActionConfirmation({ action: 'remove', item: `the attached file “${quiz.attachment_name ?? 'attachment'}”`, detail: `The file will be permanently removed from this ${noun}. This action cannot be undone.` }))) return
+    setSaving(true); setError(null)
+    const { error: removeError } = await supabase.rpc('set_quiz_attachment', { target_quiz_id: quiz.id, attachment_path: '', attachment_name: '' })
+    setSaving(false)
+    if (removeError) setError(removeError.message); else { setPreviewDocument(null); await load(false) }
   }
 
   const startQuiz = async (quiz: Quiz) => {
@@ -232,12 +303,34 @@ function AssessmentsTab({ classId, canManage, isStudent, assessmentKind }: { cla
 
   const submitQuiz = useCallback(async (quiz: Quiz) => {
     setSaving(true); setError(null)
+    let uploadedPath = ''
     const quizAnswers: Record<string, string> = {}
     for (const question of questions[quiz.id] ?? []) quizAnswers[question.id] = answers[question.id] ?? ''
-    const { error: submitError } = await supabase.rpc('submit_quiz', { target_quiz_id: quiz.id, submitted_answers: quizAnswers as Json })
+    try {
+      const file = submissionFiles[quiz.id]
+      if (file && profile) {
+        uploadedPath = `${classId}/${profile.id}/quiz-attempts/${quiz.id}/${crypto.randomUUID()}-${safeFileName(file.name)}`
+        const { error: uploadError } = await supabase.storage.from('submissions').upload(uploadedPath, file)
+        if (uploadError) throw uploadError
+      }
+      const { error: submitError } = await supabase.rpc('submit_quiz', { target_quiz_id: quiz.id, submitted_answers: quizAnswers as Json, submission_file_path: uploadedPath, submission_file_name: file?.name ?? '' })
+      if (submitError) throw submitError
+      setSubmissionFiles((existing) => ({ ...existing, [quiz.id]: null }))
+      autoSubmitting.current = null
+      await load(false)
+    } catch (caught) {
+      if (uploadedPath) await supabase.storage.from('submissions').remove([uploadedPath])
+      setError(messageFrom(caught))
+    } finally { setSaving(false) }
+  }, [answers, classId, load, profile, questions, submissionFiles])
+
+  const removeSubmissionFile = async (attempt: Attempt) => {
+    if (!await confirm(destructiveActionConfirmation({ action: 'remove', item: `your submitted file “${attempt.submission_file_name ?? 'submission'}”`, detail: `The file will be permanently removed from this ${noun}. This action cannot be undone.` }))) return
+    setSaving(true); setError(null)
+    const { error: removeError } = await supabase.rpc('remove_quiz_submission_file', { target_attempt_id: attempt.id })
     setSaving(false)
-    if (submitError) setError(submitError.message); else { autoSubmitting.current = null; await load(false) }
-  }, [answers, load, questions])
+    if (removeError) setError(removeError.message); else { setPreviewDocument(null); await load(false) }
+  }
 
   const current = quizzes.find((item) => item.id === selected)
   const currentAttempt = attempts.find((item) => item.quiz_id === selected && item.student_id === profile?.id)
@@ -260,8 +353,9 @@ function AssessmentsTab({ classId, canManage, isStudent, assessmentKind }: { cla
   const cards = useMemo(() => quizzes.map((quiz) => {
     const attempt = attempts.find((item) => item.quiz_id === quiz.id && item.student_id === profile?.id)
     const availability = quizAvailability(quiz, now)
-    return { quiz, attempt, availability, clickable: !isStudent || availability.available }
-  }), [attempts, isStudent, now, profile?.id, quizzes])
+    return { quiz, attempt, availability }
+  }), [attempts, now, profile?.id, quizzes])
+  const minimumOpeningTime = now > 0 ? nextLocalMinute(now) : undefined
 
   return <section>
     <TabHeading title={plural} description={isExam ? 'Major class examinations with scheduling, timers, automatic scoring, and results.' : 'Online checks for understanding with automatic scoring.'} action={canManage && <button className={open ? 'button-secondary' : 'button-primary'} onClick={() => setOpen((value) => !value)}>{open ? <><X size={17} /> Cancel</> : <><Plus size={17} /> New {noun}</>}</button>} />
@@ -269,26 +363,27 @@ function AssessmentsTab({ classId, canManage, isStudent, assessmentKind }: { cla
       <input className="form-input" placeholder={`${isExam ? 'Exam' : 'Quiz'} title`} value={title} onChange={(event) => setTitle(event.target.value)} />
       <textarea className="form-textarea" placeholder="Description or instructions" value={description} onChange={(event) => setDescription(event.target.value)} />
       {isExam && <ExamTypeField value={examType} customValue={customExamType} onChange={setExamType} onCustomChange={setCustomExamType} />}
-      <div className="grid gap-3 md:grid-cols-2"><DateTimeField label="Opens at" value={opensAt} onChange={setOpensAt} /><DateTimeField label="Closes at" value={closesAt} min={opensAt || undefined} onChange={setClosesAt} /></div>
-      <div className="grid gap-3 md:grid-cols-2"><label className="text-sm font-semibold text-slate-700">Time limit (minutes)<input className="form-input mt-1" type="number" min="1" step="1" placeholder="No time limit" value={timeLimit} onChange={(event) => setTimeLimit(event.target.value)} /></label><label className="text-sm font-semibold text-slate-700">Initial status<select className="form-select mt-1" value={status} onChange={(event) => setStatus(event.target.value as PublishStatus)}><option value="draft">Draft</option><option value="published">Published</option></select></label></div>
+      <div className="grid gap-3 md:grid-cols-2"><DateTimeField label="Opens at" value={opensAt} min={minimumOpeningTime} minimumError="Opening date and time must be the current time or a future time. Past dates are not allowed." onChange={setOpensAt} /><DateTimeField label="Closes at" value={closesAt} min={opensAt || undefined} minimumError="The closing date and time cannot be earlier than the opening date and time." onChange={setClosesAt} /></div>
+      <div className="grid gap-3 md:grid-cols-3"><label className="text-sm font-semibold text-slate-700">Time limit (minutes)<input className="form-input mt-1" type="number" min="1" step="1" placeholder="No time limit" value={timeLimit} onChange={(event) => setTimeLimit(event.target.value)} /></label><label className="text-sm font-semibold text-slate-700">File submission points<input className="form-input mt-1" type="number" min="0.1" step="0.1" value={fileSubmissionPoints} onChange={(event) => setFileSubmissionPoints(event.target.value)} /></label><label className="text-sm font-semibold text-slate-700">Initial status<select className="form-select mt-1" value={status} onChange={(event) => setStatus(event.target.value as PublishStatus)}><option value="draft">Draft</option><option value="published">Published</option></select></label></div>
       <p className="text-xs text-slate-500">The timer begins when a student clicks Start {noun}. The closing time still ends access even when time remains.</p>
       <div className="flex justify-end gap-2"><button type="button" className="button-secondary" onClick={() => setOpen(false)}>Cancel</button><button className="button-primary" disabled={saving}>{saving ? 'Creating…' : `Create ${noun}`}</button></div>
     </form>}
     {loading && <LoadingState label={`Loading ${noun}s…`} />}
     {error && <ErrorState message={error} onRetry={() => void load()} />}
     {!loading && !error && quizzes.length === 0 && <EmptyState title={`No ${noun}s yet`} description={canManage ? `Create the first ${noun} for this class.` : `No ${noun}s have been assigned.`} />}
-    {!loading && quizzes.length > 0 && <div className="grid gap-4 lg:grid-cols-[minmax(230px,0.8fr)_minmax(0,1.7fr)]">
-      <div className="space-y-2">{cards.map(({ quiz, attempt, availability, clickable }) => <button type="button" className={`discussion-topic ${selected === quiz.id ? 'discussion-topic-active' : ''} ${!clickable ? 'cursor-not-allowed opacity-55' : ''}`} key={quiz.id} disabled={!clickable} title={!clickable ? availability.reason : undefined} onClick={() => clickable && setSelected(quiz.id)}><div className="flex min-w-0 items-center gap-2"><CircleHelp className="shrink-0" size={16} /><strong className="truncate">{quiz.title}</strong></div><span>{attempt?.status === 'submitted' ? 'submitted' : availability.label} · {(questions[quiz.id] ?? []).length} questions</span>{!clickable && <span>{availability.reason}</span>}</button>)}</div>
+    {!loading && quizzes.length > 0 && <div className="content-sized-selector-layout grid gap-4">
+      <div className="content-sized-selector-list">{cards.map(({ quiz, attempt, availability }) => <button type="button" className={`discussion-topic ${selected === quiz.id ? 'discussion-topic-active' : ''} ${isUnread(classId, notificationSection, quiz.id) ? 'notification-content-unread' : ''}`} key={quiz.id} onClick={() => { setSelected(quiz.id); setQuestionFormOpen(false); markItemViewed(classId, notificationSection, quiz.id) }}><div className="flex min-w-0 items-center gap-2"><CircleHelp className="shrink-0" size={16} /><strong className="truncate">{quiz.title}</strong></div><span>{attempt?.status === 'submitted' ? 'submitted' : availability.label} · {(questions[quiz.id] ?? []).length} questions</span>{!availability.available && <span>{availability.reason}</span>}</button>)}</div>
       <div className="classroom-outline rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
         {!current ? <EmptyState title={`Select an ${noun}`} description={`Choose an available ${noun} to view its details.`} /> : <>
           <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><h3 className="text-xl font-black text-slate-900">{current.title}</h3>{isExam && <span className="status-pill status-pill-active">{current.exam_type}</span>}</div>{current.description && <p className="mt-1 text-sm text-slate-600">{current.description}</p>}<p className="mt-2 text-xs text-slate-400">{current.status} · Opens {formatDate(current.opens_at)} · Closes {formatDate(current.closes_at)} · {current.time_limit_minutes ? `${current.time_limit_minutes} minute limit` : 'No time limit'}</p></div>{canManage && <div className="flex gap-2"><button className="button-secondary" onClick={() => void publish(current)}>{current.status === 'published' ? 'Close' : 'Publish'}</button><button className="icon-action text-brand-700" title={editingId === current.id ? 'Cancel editing' : `Edit ${noun}`} onClick={() => editingId === current.id ? cancelEdit() : beginEdit(current)}>{editingId === current.id ? <X size={17} /> : <Pencil size={17} />}</button><button className="icon-action text-red-600" title={`Delete ${noun}`} onClick={() => void remove(current.id)}><Trash2 size={17} /></button></div>}</div>
+          {current.attachment_path && current.attachment_name && <div className="my-4 rounded-xl border border-blue-100 bg-blue-50 p-4"><p className="text-xs font-extrabold uppercase tracking-wide text-brand-700">Attached {noun} file</p><p className="mt-1 break-words text-sm font-bold text-slate-800">{current.attachment_name}</p><div className="mt-3 flex flex-wrap gap-2"><button type="button" className="button-secondary" onClick={() => setPreviewDocument({ bucket: 'materials', path: current.attachment_path!, name: current.attachment_name! })}><Eye size={16} /> Preview</button>{canManage && <button type="button" className="button-secondary text-red-600" disabled={saving} onClick={() => void removeAssessmentAttachment(current)}><Trash2 size={16} /> Remove</button>}</div></div>}
           {canManage && editingId === current.id && <form className="workspace-form my-4" onSubmit={(event) => void saveQuiz(event, current)}>
             <h4 className="font-extrabold text-slate-800">Edit {noun}</h4>
             <input className="form-input" placeholder={`${isExam ? 'Exam' : 'Quiz'} title`} value={editTitle} onChange={(event) => setEditTitle(event.target.value)} />
             <textarea className="form-textarea" placeholder="Description or instructions" value={editDescription} onChange={(event) => setEditDescription(event.target.value)} />
             {isExam && <ExamTypeField value={editExamType} customValue={editCustomExamType} onChange={setEditExamType} onCustomChange={setEditCustomExamType} />}
-            <div className="grid gap-3 md:grid-cols-2"><DateTimeField label="Opens at" value={editOpensAt} onChange={setEditOpensAt} /><DateTimeField label="Closes at" value={editClosesAt} min={editOpensAt || undefined} onChange={setEditClosesAt} /></div>
-            <div className="grid gap-3 md:grid-cols-2"><label className="text-sm font-semibold text-slate-700">Time limit (minutes)<input className="form-input mt-1" type="number" min="1" step="1" placeholder="No time limit" value={editTimeLimit} onChange={(event) => setEditTimeLimit(event.target.value)} /></label><label className="text-sm font-semibold text-slate-700">Status<select className="form-select mt-1" value={editStatus} onChange={(event) => setEditStatus(event.target.value as PublishStatus)}><option value="draft">Draft</option><option value="published">Published</option><option value="closed">Closed</option></select></label></div>
+            <div className="grid gap-3 md:grid-cols-2"><DateTimeField label="Opens at" value={editOpensAt} min={minimumOpeningTime} allowCurrentBeforeMin minimumError="Opening date and time must be the current time or a future time. Past dates are not allowed." onChange={setEditOpensAt} /><DateTimeField label="Closes at" value={editClosesAt} min={editOpensAt || undefined} minimumError="The closing date and time cannot be earlier than the opening date and time." onChange={setEditClosesAt} /></div>
+            <div className="grid gap-3 md:grid-cols-3"><label className="text-sm font-semibold text-slate-700">Time limit (minutes)<input className="form-input mt-1" type="number" min="1" step="1" placeholder="No time limit" value={editTimeLimit} onChange={(event) => setEditTimeLimit(event.target.value)} /></label><label className="text-sm font-semibold text-slate-700">File submission points<input className="form-input mt-1" type="number" min="0.1" step="0.1" value={editFileSubmissionPoints} onChange={(event) => setEditFileSubmissionPoints(event.target.value)} /></label><label className="text-sm font-semibold text-slate-700">Status<select className="form-select mt-1" value={editStatus} onChange={(event) => setEditStatus(event.target.value as PublishStatus)}><option value="draft">Draft</option><option value="published">Published</option><option value="closed">Closed</option></select></label></div>
             <div className="flex justify-end gap-2"><button type="button" className="button-secondary" onClick={cancelEdit}>Cancel</button><button className="button-primary" disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</button></div>
           </form>}
           {isStudent && !currentAttempt && <div className="my-5 rounded-xl border border-slate-200 bg-slate-50 p-5 text-center"><Clock3 className="mx-auto text-brand-600" /><p className="mt-2 font-bold text-slate-800">{currentAvailability?.available ? 'Ready to begin?' : currentAvailability?.reason}</p><p className="mt-1 text-sm text-slate-500">{current.time_limit_minutes ? `You will have ${current.time_limit_minutes} minutes after starting.` : `This ${noun} has no countdown time limit.`}</p><button className="button-primary mt-4" disabled={saving || !currentAvailability?.available} onClick={() => void startQuiz(current)}>{saving ? 'Starting…' : `Start ${noun}`}</button></div>}
@@ -298,10 +393,11 @@ function AssessmentsTab({ classId, canManage, isStudent, assessmentKind }: { cla
             {canManage && editingQuestionId === question.id && <QuestionEditForm question={question} questionNumber={index + 1} prompt={editQuestionPrompt} type={editQuestionType} options={editQuestionOptions} correct={editQuestionCorrect} points={editQuestionPoints} saving={saving} onPromptChange={setEditQuestionPrompt} onTypeChange={setEditQuestionType} onOptionsChange={setEditQuestionOptions} onCorrectChange={setEditQuestionCorrect} onPointsChange={setEditQuestionPoints} onCancel={cancelQuestionEdit} onSubmit={saveQuestion} />}
             {isStudent && <QuestionInput question={question} value={answers[question.id] ?? ''} onChange={(value) => setAnswers((existing) => ({ ...existing, [question.id]: value }))} />}
           </article>)}</div>}
-          {canManage ? currentClosed ? <QuizResults quiz={current} questions={questions[current.id] ?? []} attempts={attempts} students={students} onGraded={() => load(false)} /> : <form className="workspace-form" onSubmit={addQuestion}><h4 className="font-extrabold text-slate-800">Add question</h4><input className="form-input" placeholder="Question prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} /><div className="grid gap-3 sm:grid-cols-3"><select className="form-select" value={questionType} onChange={(event) => setQuestionType(event.target.value as QuestionType)}><option value="multiple_choice">Multiple choice</option><option value="true_false">True / false</option><option value="identification">Identification</option><option value="essay">Essay</option></select><input className="form-input" type="number" min="0.1" step="0.1" value={questionPoints} onChange={(event) => setQuestionPoints(event.target.value)} placeholder="Points" />{questionType === 'true_false' ? <select className="form-select" value={correct} onChange={(event) => setCorrect(event.target.value)}><option value="">Select correct answer</option><option value="True">True</option><option value="False">False</option></select> : <input className="form-input" placeholder={questionType === 'essay' ? 'Correct answer (optional)' : 'Correct answer'} value={correct} onChange={(event) => setCorrect(event.target.value)} />}</div>{questionType === 'multiple_choice' && <input className="form-input" placeholder="Choices separated by commas" value={options} onChange={(event) => setOptions(event.target.value)} />}{questionType === 'essay' && <p className="text-sm text-slate-500">Essay responses are graded manually. You can award any score from 0 to the question point value.</p>}<div className="flex justify-end"><button className="button-primary" disabled={saving}>Add question</button></div></form> : isStudent && currentAttempt?.status === 'submitted' ? <div className="rounded-xl bg-slate-50 p-5"><ScoreBar earned={currentAttempt.score} possible={currentAttempt.max_score} label={`${isExam ? 'Exam' : 'Quiz'} score`} />{(questions[current.id] ?? []).some((question) => question.question_type === 'essay' && !hasEssayGrade(currentAttempt, question.id)) && <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">Essay response is awaiting instructor grading. Your score may still change.</p>}<p className="mt-3 text-sm text-slate-600">Submitted {formatDate(currentAttempt.submitted_at)}</p></div> : isStudent && currentAttempt?.status === 'in_progress' ? <button className="button-primary w-full" disabled={saving || !(questions[current.id]?.length)} onClick={() => void submitQuiz(current)}>{saving ? 'Submitting…' : `Submit ${noun}`}</button> : !isStudent && <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">{isExam ? 'Exam' : 'Quiz'} content is available for administrative review. Attempts and scores appear after students submit.</div>}
+          {canManage ? currentClosed ? <QuizResults quiz={current} questions={questions[current.id] ?? []} attempts={attempts} students={students} onGraded={() => load(false)} onPreview={setPreviewDocument} /> : <div className="space-y-4"><div className="flex flex-wrap gap-2"><button type="button" className="button-primary" onClick={() => setQuestionFormOpen(true)}><Plus size={17} /> Add Question</button><button type="button" className="button-secondary" disabled={saving} onClick={() => attachmentInput.current?.click()}><FileUp size={17} /> {current.attachment_path ? 'Replace File' : 'Attach File'}</button><input ref={attachmentInput} className="hidden" type="file" onChange={(event) => void attachAssessmentFile(current, event.target.files?.[0] ?? null)} /></div>{questionFormOpen && <form className="workspace-form" onSubmit={addQuestion}><h4 className="font-extrabold text-slate-800">Add question</h4><input className="form-input" placeholder="Question prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} /><div className="grid gap-3 sm:grid-cols-3"><select className="form-select" value={questionType} onChange={(event) => setQuestionType(event.target.value as QuestionType)}><option value="multiple_choice">Multiple choice</option><option value="true_false">True / false</option><option value="identification">Identification</option><option value="essay">Essay</option></select><input className="form-input" type="number" min="0.1" step="0.1" value={questionPoints} onChange={(event) => setQuestionPoints(event.target.value)} placeholder="Points" />{questionType === 'true_false' ? <select className="form-select" value={correct} onChange={(event) => setCorrect(event.target.value)}><option value="">Select correct answer</option><option value="True">True</option><option value="False">False</option></select> : <input className="form-input" placeholder={questionType === 'essay' ? 'Correct answer (optional)' : 'Correct answer'} value={correct} onChange={(event) => setCorrect(event.target.value)} />}</div>{questionType === 'multiple_choice' && <input className="form-input" placeholder="Options separated by commas" value={options} onChange={(event) => setOptions(event.target.value)} />}{questionType === 'essay' && <p className="text-xs text-slate-500">Essay questions require manual grading. The instructor can award any score from 0 to the question point value.</p>}<div className="flex justify-end gap-2"><button type="button" className="button-secondary" onClick={() => { setQuestionFormOpen(false); setError(null) }}>Cancel</button><button className="button-primary" disabled={saving}>Add question</button></div></form>}</div> : isStudent && currentAttempt?.status === 'submitted' ? <div className="rounded-xl bg-slate-50 p-5"><ScoreBar earned={currentAttempt.score} possible={currentAttempt.max_score} label={`${isExam ? 'Exam' : 'Quiz'} score`} />{(questions[current.id] ?? []).some((question) => question.question_type === 'essay' && !hasEssayGrade(currentAttempt, question.id)) && <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">Essay response is awaiting instructor grading. Your score may still change.</p>}<p className="mt-3 text-sm text-slate-600">Submitted {formatDate(currentAttempt.submitted_at)}</p>{currentAttempt.submission_file_path && currentAttempt.submission_file_name && <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3"><p className="break-words text-sm font-bold text-slate-800">{currentAttempt.submission_file_name}</p><div className="mt-3 flex flex-wrap gap-2"><button type="button" className="button-secondary" onClick={() => setPreviewDocument({ bucket: 'submissions', path: currentAttempt.submission_file_path!, name: currentAttempt.submission_file_name! })}><Eye size={16} /> Preview</button><button type="button" className="button-secondary text-red-600" disabled={saving} onClick={() => void removeSubmissionFile(currentAttempt)}><Trash2 size={16} /> Remove</button></div></div>}</div> : isStudent && currentAttempt?.status === 'in_progress' ? <div className="space-y-3"><label className="file-picker"><FileUp size={18} /><span>{submissionFiles[current.id]?.name ?? `Attach your ${noun} answer file (optional)`}</span><input type="file" onChange={(event) => setSubmissionFiles((existing) => ({ ...existing, [current.id]: event.target.files?.[0] ?? null }))} /></label><p className="text-xs text-slate-500">Any file type is accepted; maximum 10 MB. Browser-supported formats can be viewed in the LMS, while other formats can be downloaded.</p><button className="button-primary w-full" disabled={saving || (!(questions[current.id]?.length) && !submissionFiles[current.id])} onClick={() => void submitQuiz(current)}>{saving ? 'Submitting…' : `Submit ${noun}`}</button></div> : !isStudent && <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">{isExam ? 'Exam' : 'Quiz'} content is available for administrative review. Attempts and scores appear after students submit.</div>}
         </>}
       </div>
     </div>}
+    <DocumentPreviewModal document={previewDocument} onClose={() => setPreviewDocument(null)} />
   </section>
 }
 
@@ -334,63 +430,12 @@ function toLocalDateTimeInput(value: string | null) {
   return new Date(date.getTime() - offset).toISOString().slice(0, 16)
 }
 
-function DateTimeField({ label, value, min, onChange }: { label: string; value: string; min?: string; onChange: (value: string) => void }) {
-  const titleId = useId()
-  const [pickerOpen, setPickerOpen] = useState(false)
-  const [draftDate, setDraftDate] = useState('')
-  const [draftTime, setDraftTime] = useState('')
-
-  const openPicker = () => {
-    const [date = '', time = ''] = value.split('T')
-    setDraftDate(date)
-    setDraftTime(time.slice(0, 5))
-    setPickerOpen(true)
-  }
-
-  const closePicker = () => setPickerOpen(false)
-  const draftValue = draftDate && draftTime ? `${draftDate}T${draftTime}` : ''
-  const invalidMinimum = Boolean(min && draftValue && new Date(draftValue).getTime() < new Date(min).getTime())
-
-  const save = () => {
-    if (!draftValue || invalidMinimum) return
-    onChange(draftValue)
-    closePicker()
-  }
-
-  const clear = () => {
-    onChange('')
-    closePicker()
-  }
-
-  return <div className="block text-sm font-semibold text-slate-700">
-    <span>{label}</span>
-    <button type="button" className="form-input mt-1 flex items-center justify-between gap-3 text-left" onClick={openPicker}>
-      <span className={value ? 'text-slate-900' : 'text-slate-400'}>{value ? formatLocalInputDate(value) : 'Select date and time'}</span>
-      <CalendarDays className="shrink-0 text-brand-700" size={18} aria-hidden="true" />
-    </button>
-    {pickerOpen && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closePicker() }}>
-      <section className="modal-card max-w-md" role="dialog" aria-modal="true" aria-labelledby={titleId}>
-        <div className="flex items-start justify-between gap-3">
-          <div><h3 id={titleId} className="text-xl font-black text-slate-900">{label}</h3><p className="mt-1 text-sm font-normal text-slate-500">Choose the date and time, then press Save to close this calendar.</p></div>
-          <button type="button" className="icon-action" title="Close calendar" aria-label="Close calendar" onClick={closePicker}><X size={18} /></button>
-        </div>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <label className="text-sm font-semibold text-slate-700">Date<input className="form-input" type="date" value={draftDate} onChange={(event) => setDraftDate(event.target.value)} /></label>
-          <label className="text-sm font-semibold text-slate-700">Time<input className="form-input" type="time" value={draftTime} onChange={(event) => setDraftTime(event.target.value)} /></label>
-        </div>
-        {invalidMinimum && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">The closing date and time cannot be earlier than the opening date and time.</p>}
-        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
-          <button type="button" className="button-secondary" onClick={clear}>Clear</button>
-          <div className="flex flex-col-reverse gap-2 sm:flex-row"><button type="button" className="button-secondary" onClick={closePicker}>Cancel</button><button type="button" className="button-primary" disabled={!draftValue || invalidMinimum} onClick={save}>Save date &amp; time</button></div>
-        </div>
-      </section>
-    </div>}
-  </div>
-}
-
-function formatLocalInputDate(value: string) {
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
+function nextLocalMinute(timestamp: number) {
+  const date = new Date(timestamp)
+  date.setSeconds(0, 0)
+  if (date.getTime() < timestamp) date.setMinutes(date.getMinutes() + 1)
+  const offset = date.getTimezoneOffset() * 60_000
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16)
 }
 
 function ExamTypeField({ value, customValue, onChange, onCustomChange }: { value: string; customValue: string; onChange: (value: string) => void; onCustomChange: (value: string) => void }) {
@@ -407,7 +452,7 @@ function ExamTypeField({ value, customValue, onChange, onCustomChange }: { value
   </div>
 }
 
-function QuizResults({ quiz, questions, attempts, students, onGraded }: { quiz: Quiz; questions: ManagedQuestion[]; attempts: Attempt[]; students: Student[]; onGraded: () => Promise<void> }) {
+function QuizResults({ quiz, questions, attempts, students, onGraded, onPreview }: { quiz: Quiz; questions: ManagedQuestion[]; attempts: Attempt[]; students: Student[]; onGraded: () => Promise<void>; onPreview: (document: PreviewDocument) => void }) {
   const quizAttempts = attempts.filter((attempt) => attempt.quiz_id === quiz.id)
   const attemptsByStudent = new Map(quizAttempts.map((attempt) => [attempt.student_id, attempt]))
   const submitted = quizAttempts.filter((attempt) => attempt.status === 'submitted')
@@ -421,13 +466,35 @@ function QuizResults({ quiz, questions, attempts, students, onGraded }: { quiz: 
     {students.length > 0 ? <div className="overflow-x-auto"><table className="admin-table"><thead><tr><th>Student</th><th>Score</th><th>Status</th><th>Submitted</th></tr></thead><tbody>{students.map((student) => {
       const attempt = attemptsByStudent.get(student.id)
       return <tr key={student.id}>
-        <td data-label="Student"><p className="font-bold text-slate-800">{student.full_name}</p><p className="text-xs text-slate-400">{student.school_id}</p></td>
-        <td data-label="Score">{attempt?.status === 'submitted' ? <div className="min-w-52 space-y-3"><ScoreBar earned={attempt.score} possible={attempt.max_score} label="Score" compact />{questions.filter((question) => question.question_type === 'essay').map((question) => <EssayGradeControl key={question.id} attempt={attempt} question={question} onGraded={onGraded} />)}</div> : <span className="text-sm font-semibold text-slate-400">—</span>}</td>
+        <td data-label="Student"><div className="flex min-w-44 items-center gap-3"><ProfileAvatar name={student.full_name} avatarPath={student.avatar_path} className="size-10 text-xs" /><div><p className="font-bold text-slate-800">{student.full_name}</p><p className="text-xs text-slate-400">{student.school_id}</p></div></div></td>
+        <td data-label="Score">{attempt?.status === 'submitted' ? <div className="min-w-52 space-y-3"><ScoreBar earned={attempt.score} possible={attempt.max_score} label="Score" compact />{attempt.submission_file_path && attempt.submission_file_name && <><button type="button" className="button-secondary" onClick={() => onPreview({ bucket: 'submissions', path: attempt.submission_file_path!, name: attempt.submission_file_name! })}><Eye size={16} /> Preview</button><FileGradeControl attempt={attempt} maximum={quiz.file_submission_points} onGraded={onGraded} /></>}{questions.filter((question) => question.question_type === 'essay').map((question) => <EssayGradeControl key={question.id} attempt={attempt} question={question} onGraded={onGraded} />)}</div> : <span className="text-sm font-semibold text-slate-400">—</span>}</td>
         <td data-label="Status"><span className={`status-pill ${attempt?.status === 'submitted' ? 'status-pill-active' : 'status-pill-inactive'}`}>{attempt?.status === 'submitted' ? 'Submitted' : attempt ? 'Finalizing' : 'Not attempted'}</span></td>
         <td data-label="Submitted" className="text-sm text-slate-500">{attempt?.submitted_at ? formatDate(attempt.submitted_at) : '—'}</td>
       </tr>
     })}</tbody></table></div> : <div className="p-4 sm:p-6"><EmptyState title="No enrolled students" description="Scores will appear after enrollment data is available." /></div>}
   </section>
+}
+
+function FileGradeControl({ attempt, maximum, onGraded }: { attempt: Attempt; maximum: number; onGraded: () => Promise<void> }) {
+  const [points, setPoints] = useState(attempt.submission_file_score === null ? '' : String(attempt.submission_file_score))
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const save = async () => {
+    const awarded = Number(points)
+    if (!Number.isFinite(awarded) || awarded < 0 || awarded > Number(maximum)) return setError(`Enter 0 to ${maximum} points.`)
+    setSaving(true); setError(null)
+    const { error: gradeError } = await supabase.rpc('grade_quiz_file', { target_attempt_id: attempt.id, awarded_points: awarded })
+    setSaving(false)
+    if (gradeError) return setError(gradeError.message)
+    await onGraded()
+  }
+
+  return <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-left">
+    <p className="text-xs font-extrabold text-slate-700">Submitted file score</p>
+    <div className="mt-3 flex items-center gap-2"><input className="form-input min-w-0" type="number" min="0" max={maximum} step="0.1" value={points} onChange={(event) => setPoints(event.target.value)} placeholder="Score" /><span className="shrink-0 text-xs font-bold text-slate-500">/ {maximum}</span><button type="button" className="button-secondary shrink-0" disabled={saving} onClick={() => void save()}>{saving ? 'Saving…' : 'Save'}</button></div>
+    {error && <p className="mt-2 text-xs font-semibold text-red-600">{error}</p>}
+  </div>
 }
 
 function EssayGradeControl({ attempt, question, onGraded }: { attempt: Attempt; question: ManagedQuestion; onGraded: () => Promise<void> }) {
